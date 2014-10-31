@@ -164,25 +164,22 @@ class PXAColorPicker(wx.Window):
                 else:
                         c[3] = color[3]
 
-class PXADrawControl(wx.Control):
+class PXADrawControl(wx.ScrolledWindow):
 
         def __init__(self, parent, imageSize=(64,64), color=(255,255,255,255), id=wx.ID_ANY,  pos=wx.DefaultPosition,
                         size=wx.DefaultSize, style=wx.ALWAYS_SHOW_SB, validator=wx.DefaultValidator,
                         name="PXADrawControl"):
-                wx.Control.__init__(self, parent, id, pos, size, style, validator, name)
 
+                wx.ScrolledWindow.__init__(self, parent, id, pos, size, style, name)
+
+                self.EnableScrolling(True, True)
                 self.parent = parent
                 self.imageSize = imageSize
-                self.image = wx.EmptyImage(width=imageSize[0], height=imageSize[1])
+                #self.image = wx.EmptyImage(width=imageSize[0], height=imageSize[1])
+                self.image = wx.ImageFromBitmap(wx.EmptyBitmapRGBA(imageSize[0], imageSize[1], 255,255,255,255))
                 self.color = color
                 # todo make this dynamic
-                self.scale = 8
-
-                #bitmap = wx.BitmapFromImage(self.image.Scale(imageSize[0] * self.scale, imageSize[1] * self.scale))
-                #dc = wx.MemoryDC(bitmap)
-                #pen = wx.Pen((0,0,0,0))
-                #brush = wx.Brush(color)
-                #dc.DrawRectangle(0,0,imageSize[0], imageSize[1])
+                self.scale = 16
 
                 self.Bind(wx.EVT_PAINT, self.onPaint)
                 self.Bind(wx.EVT_LEFT_DOWN, self.onLeftClick)
@@ -213,11 +210,24 @@ class PXADrawControl(wx.Control):
                 ih = ih * sc
                 if (ww - iw) / 2 <= x < ww / 2 + iw / 2 \
                   and (wh - iw) / 2 <= y < wh / 2 + ih/ 2:
-                        nx = (x - (ww - iw) / 2) / sc 
-                        ny = (y - (wh - ih) / 2) / sc
-                        (r, g, b, a) = self.parent.colorpk.left
-                        self.image.SetRGB(nx, ny, r, g, b)
-                        self.Refresh(False)
+                    nx = (x - (ww - iw) / 2) / sc 
+                    ny = (y - (wh - ih) / 2) / sc
+
+                if iw >= ww:
+                    nx = x / sc
+
+                if ih >= wh:
+                    ny = y / sc
+
+                try: 
+                    (r, g, b, a) = self.parent.colorpk.left
+                    self.image.SetRGB(nx, ny, r, g, b)
+                    self.image.SetAlpha(nx, ny, a)
+                    self.Refresh(False)
+                except:
+                    # if they click outside the image area
+                    # nx or ny will not be set and throw
+                    pass
                         
 
         def onRightClick(self, event):
