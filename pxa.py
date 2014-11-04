@@ -2,14 +2,14 @@ import wx
 import os
 
 
-class PXAColorControl(wx.Control):
+class ColorControl(wx.Control):
         nonePen = False
         selectPen = False
         noneBrush = False
 
         def __init__(self, parent, cname, color=(0,0,0), id=wx.ID_ANY,  pos=wx.DefaultPosition,
                         size=(20,20), style=wx.NO_BORDER, validator=wx.DefaultValidator,
-                        name="PXAColorControl"):
+                        name="ColorControl"):
                 """ Constructor for the color control"""
 
                 wx.Control.__init__(self, parent, id, pos, size, style, validator, name)
@@ -29,21 +29,21 @@ class PXAColorControl(wx.Control):
                 """ make the item look the way it should """
                 dc = wx.PaintDC(self)
                 gc = wx.GraphicsContext.Create(dc)
-                if PXAColorControl.nonePen == False:
-                        PXAColorControl.nonePen =  gc.CreatePen(wx.Pen(wx.Colour(0,0,0,0), 1, wx.TRANSPARENT))
-                        PXAColorControl.selectPen =  gc.CreatePen(wx.Pen(wx.Colour(150,150,150,255), 1, wx.SOLID))
-                        PXAColorControl.noneBrush = gc.CreateBrush(wx.Brush((0,0,0,0)))
+                if ColorControl.nonePen == False:
+                        ColorControl.nonePen =  gc.CreatePen(wx.Pen(wx.Colour(0,0,0,0), 1, wx.TRANSPARENT))
+                        ColorControl.selectPen =  gc.CreatePen(wx.Pen(wx.Colour(150,150,150,255), 1, wx.SOLID))
+                        ColorControl.noneBrush = gc.CreateBrush(wx.Brush((0,0,0,0)))
                         self.brush = gc.CreateBrush(wx.Brush(self.color))
 
-                gc.SetPen(PXAColorControl.nonePen)
+                gc.SetPen(ColorControl.nonePen)
                 gc.SetBrush(self.brush)
                 gc.DrawRectangle(0,0,20,20)
 
                 self.drawSelection(gc)
 
         def drawSelection(self, gc):
-                gc.SetBrush(PXAColorControl.noneBrush)
-                gc.SetPen(PXAColorControl.selectPen)
+                gc.SetBrush(ColorControl.noneBrush)
+                gc.SetPen(ColorControl.selectPen)
                 if self.left: 
                         gc.DrawRectangle(0,0,9,18)
                 if self.right:
@@ -60,20 +60,20 @@ class PXAColorControl(wx.Control):
                 self.right = True
 
 
-class PXAAlphaControl(PXAColorControl):
+class AlphaControl(ColorControl):
 
         def __init__(self, parent, cname, color=(0,0,0), id=wx.ID_ANY,  pos=wx.DefaultPosition,
                         size=(20,20), style=wx.NO_BORDER, validator=wx.DefaultValidator,
-                        name="PXAColorControl"):
+                        name="ColorControl"):
                 """ Constructor for the color control"""
 
-                PXAColorControl.__init__(self, parent, cname, color, id, pos, size, style, validator, name)
+                ColorControl.__init__(self, parent, cname, color, id, pos, size, style, validator, name)
                 self.Bind(wx.EVT_PAINT, self.onPaint)
 
         def onPaint(self, event):
                 dc = wx.PaintDC(self)
                 gc = wx.GraphicsContext.Create(dc)
-                gc.SetPen(PXAColorControl.nonePen)
+                gc.SetPen(ColorControl.nonePen)
                 gc.SetBrush(wx.Brush(self.parent.right))
                 gc.DrawRectangle(0,0,20,20)
                 c = self.parent.left
@@ -83,8 +83,8 @@ class PXAAlphaControl(PXAColorControl):
                 self.drawSelection(gc)
 
 
-class PXAColorDisplay(wx.Window):
-        def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(80,60), style=wx.NO_BORDER, name="PXAColorPicker"):
+class ColorDisplay(wx.Window):
+        def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(80,60), style=wx.NO_BORDER, name="ColorPicker"):
                 wx.Window.__init__(self, parent, id, pos, size, style, name)
                 self.parent = parent
                 self.SetInitialSize(size)
@@ -99,8 +99,8 @@ class PXAColorDisplay(wx.Window):
                 gc.DrawRectangle(5, 5, 45, 35)
 
 
-class PXAColorPicker(wx.Window):
-        def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.NO_BORDER, name="PXAColorPicker"):
+class ColorPicker(wx.Window):
+        def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.NO_BORDER, name="ColorPicker"):
                 wx.Window.__init__(self, parent, id, pos, size, style, name)
                 self.left = [255, 255, 255, 255]
                 self.right = [0, 0, 0, 255]
@@ -109,17 +109,17 @@ class PXAColorPicker(wx.Window):
                 self.greens = []
                 self.blues = []
                 self.alphas = []
-                self.colorDisplay = PXAColorDisplay(self)
+                self.colorDisplay = ColorDisplay(self)
 
                 redSizer = wx.BoxSizer(wx.VERTICAL)
                 greenSizer = wx.BoxSizer(wx.VERTICAL)
                 blueSizer = wx.BoxSizer(wx.VERTICAL)
                 alphaSizer = wx.BoxSizer(wx.VERTICAL)
                 for i in range(0, 16):
-                        self.reds.append(PXAColorControl(self, 'red', (255 - i*17, 0, 0, 255)))
-                        self.greens.append(PXAColorControl(self, 'green', (0, 255 - i*17, 0, 255)))
-                        self.blues.append(PXAColorControl(self, 'blue', (0, 0, 255 - i*17, 255)))
-                        self.alphas.append(PXAAlphaControl(self, 'alpha', (0, 0, 0, 255 - i*17)))
+                        self.reds.append(ColorControl(self, 'red', (255 - i*17, 0, 0, 255)))
+                        self.greens.append(ColorControl(self, 'green', (0, 255 - i*17, 0, 255)))
+                        self.blues.append(ColorControl(self, 'blue', (0, 0, 255 - i*17, 255)))
+                        self.alphas.append(AlphaControl(self, 'alpha', (0, 0, 0, 255 - i*17)))
                         redSizer.Add(self.reds[i], 1, wx.SHAPED)
                         greenSizer.Add(self.greens[i], 1, wx.SHAPED)
                         blueSizer.Add(self.blues[i], 1, wx.SHAPED)
@@ -164,74 +164,70 @@ class PXAColorPicker(wx.Window):
                 else:
                         c[3] = color[3]
 
-class PXADrawControl(wx.ScrolledWindow):
+class DrawControl(wx.Control):
 
         def __init__(self, parent, imageSize=(64,64), color=(255,255,255,255), id=wx.ID_ANY,  pos=wx.DefaultPosition,
                         size=wx.DefaultSize, style=wx.ALWAYS_SHOW_SB, validator=wx.DefaultValidator,
-                        name="PXADrawControl"):
+                        name="DrawControl"):
 
-                wx.ScrolledWindow.__init__(self, parent, id, pos, size, style, name)
+                wx.Control.__init__(self, parent, id, pos, size, style, validator, name)
 
-                self.EnableScrolling(True, True)
                 self.parent = parent
                 self.imageSize = imageSize
-                #self.image = wx.EmptyImage(width=imageSize[0], height=imageSize[1])
                 self.image = wx.ImageFromBitmap(wx.EmptyBitmapRGBA(imageSize[0], imageSize[1], 255,255,255,255))
                 self.color = color
                 # todo make this dynamic
                 self.scale = 16
+                parent.SetVirtualSize((imageSize[0] * self.scale, imageSize[1] * self.scale))
+                parent.SetScrollRate(1, 1)
 
                 self.Bind(wx.EVT_PAINT, self.onPaint)
                 self.Bind(wx.EVT_LEFT_DOWN, self.onLeftClick)
                 self.Bind(wx.EVT_RIGHT_DOWN, self.onRightClick)
 
+                wsize = (imageSize[0] * self.scale, imageSize[1] * self.scale)
+                self.SetSize(wsize)
+                self.SetMinSize(wsize)
+                self.SetMaxSize(wsize)
+
         def onPaint(self, event):
-                (w, h) = self.GetSizeTuple()
                 (iw, ih) = self.imageSize
                 sc = self.scale
-                x = int((w / 2) - iw*sc/2)
-                y = int((h / 2) - ih*sc/2)
-                if x < 0:
-                        x = 0
-                if y < 0:
-                        y = 0
-
                 dc = wx.PaintDC(self)
-                dc.DrawBitmap(wx.BitmapFromImage(self.image.Scale(iw * sc, ih * sc )), x, y)
+                dc.DrawBitmap(wx.BitmapFromImage(self.image.Scale(iw * sc, ih * sc )), 0, 0)
 
         def onLeftClick(self, event):
                 x = event.GetX()
                 y = event.GetY()
-
-                (ww, wh) = self.GetSizeTuple()
-                (iw, ih) = self.imageSize
                 sc = self.scale
-                iw = iw * sc
-                ih = ih * sc
-                if (ww - iw) / 2 <= x < ww / 2 + iw / 2 \
-                  and (wh - iw) / 2 <= y < wh / 2 + ih/ 2:
-                    nx = (x - (ww - iw) / 2) / sc 
-                    ny = (y - (wh - ih) / 2) / sc
-
-                if iw >= ww:
-                    nx = x / sc
-
-                if ih >= wh:
-                    ny = y / sc
-
-                try: 
-                    (r, g, b, a) = self.parent.colorpk.left
-                    self.image.SetRGB(nx, ny, r, g, b)
-                    self.image.SetAlpha(nx, ny, a)
-                    self.Refresh(False)
-                except:
-                    # if they click outside the image area
-                    # nx or ny will not be set and throw
-                    pass
-                        
+                nx = x / sc
+                ny = y / sc
+                (r, g, b, a) = self.parent.parent.colorpk.left
+                self.image.SetRGB(nx, ny, r, g, b)
+                self.image.SetAlpha(nx, ny, a)
+                self.Refresh(False)
 
         def onRightClick(self, event):
                 pass
+
+
+class DrawWindow(wx.ScrolledWindow):
+    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(800,600), 
+            style=wx.ALWAYS_SHOW_SB, name="DrawWindow"):
+
+        wx.ScrolledWindow.__init__(self, parent, id, pos, size, style, name)
+        self.parent = parent
+
+        self.SetMinSize(size) # do we need this?
+        sizerh = wx.BoxSizer(wx.HORIZONTAL)
+        sizerv = wx.BoxSizer(wx.VERTICAL)
+        sizerh.Add(sizerv, 1, wx.ALIGN_CENTER_VERTICAL)
+        sizerv.Add(DrawControl(self), 0, wx.ALIGN_CENTER_HORIZONTAL)
+        
+        self.SetSizer(sizerh)
+        self.SetAutoLayout(1)
+        sizerh.Fit(self)
+
 
 class MainWindow(wx.Frame):
         def __init__(self, parent, title):
@@ -239,11 +235,13 @@ class MainWindow(wx.Frame):
 
                 # A "-1" in the size parameter instructs wxWidgets to use the default size.
                 # In this case, we select 200px width and the default height.
-                wx.Frame.__init__(self, parent, title=title, size=(800,600))
+                wx.Frame.__init__(self, parent, title=title)
                 #self.control = wx.TextCtrl(self, size=(300,200), style=wx.TE_MULTILINE)
-                self.control = PXADrawControl(self, size=(800, 600))
+                #self.control = DrawControl(self, size=(800, 600))
+                self.drawWindow = DrawWindow(self)
+
                 # create our custom color picker control
-                self.colorpk = PXAColorPicker(self)
+                self.colorpk = ColorPicker(self)
                 self.CreateStatusBar() # A Statusbar in the bottom of the window
 
                 # Setting up the menu.
@@ -265,7 +263,7 @@ class MainWindow(wx.Frame):
                 # Use some sizers to see layout options
                 self.sizer = wx.BoxSizer(wx.HORIZONTAL)
                 self.sizer.Add(self.colorpk, 0, wx.SHAPED)
-                self.sizer.Add(self.control, 1, wx.EXPAND)
+                self.sizer.Add(self.drawWindow, 1, wx.EXPAND)
 
                 #Layout sizers
                 self.SetSizer(self.sizer)
