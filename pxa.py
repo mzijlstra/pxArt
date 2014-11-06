@@ -176,8 +176,7 @@ class DrawControl(wx.Control):
                 self.imageSize = imageSize
                 self.image = wx.ImageFromBitmap(wx.EmptyBitmapRGBA(imageSize[0], imageSize[1], 255,255,255,255))
                 self.color = color
-                # todo make this dynamic
-                self.scale = 16
+                self.scale = 1
                 parent.SetVirtualSize((imageSize[0] * self.scale, imageSize[1] * self.scale))
                 parent.SetScrollRate(1, 1)
 
@@ -189,6 +188,17 @@ class DrawControl(wx.Control):
                 self.SetSize(wsize)
                 self.SetMinSize(wsize)
                 self.SetMaxSize(wsize)
+
+        def SetZoom(self, n):
+            self.scale = n;
+            imageSize = self.imageSize
+            wsize = (imageSize[0] * self.scale, imageSize[1] * self.scale)
+            self.SetSize(wsize)
+            self.SetMinSize(wsize)
+            self.SetMaxSize(wsize)
+            self.parent.SetVirtualSize(wsize)
+            self.parent.SetScrollRate(1, 1)
+            self.Refresh()
 
         def onPaint(self, event):
                 (iw, ih) = self.imageSize
@@ -218,20 +228,25 @@ class DrawWindow(wx.ScrolledWindow):
         wx.ScrolledWindow.__init__(self, parent, id, pos, size, style, name)
         self.parent = parent
 
+        self.drawControl = DrawControl(self)
         self.SetMinSize(size) # do we need this?
         sizerh = wx.BoxSizer(wx.HORIZONTAL)
         sizerv = wx.BoxSizer(wx.VERTICAL)
         sizerh.Add(sizerv, 1, wx.ALIGN_CENTER_VERTICAL)
-        sizerv.Add(DrawControl(self), 0, wx.ALIGN_CENTER_HORIZONTAL)
+        sizerv.Add(self.drawControl, 0, wx.ALIGN_CENTER_HORIZONTAL)
         
         self.SetSizer(sizerh)
         self.SetAutoLayout(1)
         sizerh.Fit(self)
 
+    def SetZoom(self, n):
+        self.drawControl.SetZoom(n)
+
 
 class MainWindow(wx.Frame):
         def __init__(self, parent, title):
                 self.dirname=''
+                self.zoom = 1
 
                 # A "-1" in the size parameter instructs wxWidgets to use the default size.
                 # In this case, we select 200px width and the default height.
@@ -250,15 +265,29 @@ class MainWindow(wx.Frame):
                 menuAbout= filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
                 menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
 
+                # Create a zoom menu
+                zoomMenu = wx.Menu()
+                z100 = zoomMenu.Append(wx.ID_ANY, "100%", "Zoom 100%")
+                z200 = zoomMenu.Append(wx.ID_ANY, "200%", "Zoom 200%")
+                z400 = zoomMenu.Append(wx.ID_ANY, "400%", "Zoom 400%")
+                z800 = zoomMenu.Append(wx.ID_ANY, "800%", "Zoom 800%")
+                z1600 = zoomMenu.Append(wx.ID_ANY, "1600%", "Zoom 1600%")
+
                 # Creating the menubar.
                 menuBar = wx.MenuBar()
                 menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
+                menuBar.Append(zoomMenu, "Zoom")
                 self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
                 # Events.
                 self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
                 self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
                 self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
+                self.Bind(wx.EVT_MENU, self.Zoom(1), z100)
+                self.Bind(wx.EVT_MENU, self.Zoom(2), z200)
+                self.Bind(wx.EVT_MENU, self.Zoom(4), z400)
+                self.Bind(wx.EVT_MENU, self.Zoom(8), z800)
+                self.Bind(wx.EVT_MENU, self.Zoom(16), z1600)
 
                 # Use some sizers to see layout options
                 self.sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -271,16 +300,19 @@ class MainWindow(wx.Frame):
                 self.sizer.Fit(self)
                 self.Show()
 
-        def OnAbout(self,e):
+        def Zoom(self, n):
+            return lambda e: self.drawWindow.SetZoom(n)
+
+        def OnAbout(self, e):
                 # Create a message dialog box
                 dlg = wx.MessageDialog(self, " A sample editor \n in wxPython", "About Sample Editor", wx.OK)
                 dlg.ShowModal() # Shows it
                 dlg.Destroy() # finally destroy it when finished.
 
-        def OnExit(self,e):
+        def OnExit(self, e):
                 self.Close(True)  # Close the frame.
 
-        def OnOpen(self,e):
+        def OnOpen(self, e):
                 """ Open a file"""
                 dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.*", wx.OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
