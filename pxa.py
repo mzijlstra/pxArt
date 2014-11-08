@@ -67,7 +67,7 @@ class AlphaControl(ColorControl):
     def __init__(self, parent, cname, color=(0,0,0), id=wx.ID_ANY, 
             pos=wx.DefaultPosition, size=(20,20), style=wx.NO_BORDER, 
             validator=wx.DefaultValidator, name="ColorControl"):
-        """ Constructor for the color control"""
+        """ Constructor for the alpha control"""
 
         ColorControl.__init__(self, parent, cname, color, id, pos, size, style, 
                 validator, name)
@@ -196,6 +196,7 @@ class DrawControl(wx.Control):
         self.Bind(wx.EVT_PAINT, self.onPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.onLeftClick)
         self.Bind(wx.EVT_RIGHT_DOWN, self.onRightClick)
+        self.Bind(wx.EVT_MOTION, self.onMotion)
 
         wsize = (imageSize[0] * self.scale, imageSize[1] * self.scale)
         self.SetSize(wsize)
@@ -220,19 +221,31 @@ class DrawControl(wx.Control):
         dc.DrawBitmap(wx.BitmapFromImage(self.image.Scale(iw * sc, ih * sc )), 
                 0, 0)
 
-    def onLeftClick(self, event):
-        x = event.GetX()
-        y = event.GetY()
+
+    def _setPixel(self, x, y, (r, g, b, a)):
         sc = self.scale
         nx = x / sc
         ny = y / sc
-        (r, g, b, a) = self.parent.parent.colorpk.left
+        #(r, g, b, a) = self.parent.parent.colorpk.left
         self.image.SetRGB(nx, ny, r, g, b)
         self.image.SetAlpha(nx, ny, a)
         self.Refresh(False)
 
+    def onLeftClick(self, event):
+        color = self.parent.parent.colorpk.left
+        self._setPixel(event.GetX(), event.GetY(), color)
+
     def onRightClick(self, event):
-        pass
+        color = self.parent.parent.colorpk.right
+        self._setPixel(event.GetX(), event.GetY(), color)
+
+    def onMotion(self, event):
+        if event.Dragging():
+            if event.LeftIsDown():
+                color = self.parent.parent.colorpk.left
+            else:
+                color = self.parent.parent.colorpk.right
+            self._setPixel(event.GetX(), event.GetY(), color)
 
 
 class DrawWindow(wx.ScrolledWindow):
