@@ -21,11 +21,11 @@ class ColorControl(wx.Control):
         self.brush = wx.Brush(color)
         self.SetInitialSize(size)
         self.InheritAttributes()
-        self.Bind(wx.EVT_PAINT, self.onPaint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.onLeftClick)
-        self.Bind(wx.EVT_RIGHT_DOWN, self.onRightClick)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
 
-    def onPaint(self, event):
+    def OnPaint(self, event):
         """ make the item look the way it should """
         dc = wx.PaintDC(self)
         gc = wx.GraphicsContext.Create(dc)
@@ -41,9 +41,9 @@ class ColorControl(wx.Control):
         gc.SetBrush(self.brush)
         gc.DrawRectangle(0,0,20,20)
 
-        self.drawSelection(gc)
+        self.DrawSelection(gc)
 
-    def drawSelection(self, gc):
+    def DrawSelection(self, gc):
         gc.SetBrush(ColorControl.noneBrush)
         gc.SetPen(ColorControl.selectPen)
         if self.left: 
@@ -51,14 +51,14 @@ class ColorControl(wx.Control):
         if self.right:
                 gc.DrawRectangle(10,0,9,18)
 
-    def onLeftClick(self, event):
-        self.parent.clearSelection('left', self.cname)
-        self.parent.select('left', self.cname, self.color)
+    def OnLeftClick(self, event):
+        self.parent.ClearSelection('left', self.cname)
+        self.parent.Select('left', self.cname, self.color)
         self.left = True
 
-    def onRightClick(self, event):
-        self.parent.clearSelection('right', self.cname)
-        self.parent.select('right', self.cname, self.color)
+    def OnRightClick(self, event):
+        self.parent.ClearSelection('right', self.cname)
+        self.parent.Select('right', self.cname, self.color)
         self.right = True
 
 
@@ -71,9 +71,9 @@ class AlphaControl(ColorControl):
 
         ColorControl.__init__(self, parent, cname, color, id, pos, size, style, 
                 validator, name)
-        self.Bind(wx.EVT_PAINT, self.onPaint)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
 
-    def onPaint(self, event):
+    def OnPaint(self, event):
         dc = wx.PaintDC(self)
         gc = wx.GraphicsContext.Create(dc)
         gc.SetPen(ColorControl.nonePen)
@@ -83,7 +83,7 @@ class AlphaControl(ColorControl):
         gc.SetBrush(wx.Brush((c[0], c[1], c[2], self.color[3])))
         gc.DrawRectangle(0,0,20,20)
 
-        self.drawSelection(gc)
+        self.DrawSelection(gc)
 
 
 class ColorDisplay(wx.Window):
@@ -93,9 +93,9 @@ class ColorDisplay(wx.Window):
         wx.Window.__init__(self, parent, id, pos, size, style, name)
         self.parent = parent
         self.SetInitialSize(size)
-        self.Bind(wx.EVT_PAINT, self.onPaint)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
 
-    def onPaint(self, event):
+    def OnPaint(self, event):
         dc = wx.PaintDC(self)
         gc = wx.GraphicsContext.Create(dc)
         gc.SetBrush(gc.CreateBrush(wx.Brush(self.parent.right)))
@@ -154,7 +154,7 @@ class ColorPicker(wx.Window):
         self.SetAutoLayout(1)
         blocks.Fit(self)
 
-    def clearSelection(self, lr, cname):
+    def ClearSelection(self, lr, cname):
         items = getattr(self, cname + 's')
         for item in items:
             setattr(item, lr, False)
@@ -164,7 +164,7 @@ class ColorPicker(wx.Window):
             for alpha in self.alphas:
                 alpha.Refresh()
 
-    def select(self, lr, cname, color):
+    def Select(self, lr, cname, color):
         c = getattr(self, lr)
         if cname == 'red':
             c[0] = color[0]
@@ -193,18 +193,17 @@ class DrawControl(wx.Control):
         parent.SetVirtualSize((imageSize[0] * sc, imageSize[1] * sc))
         parent.SetScrollRate(1, 1)
 
-        self.Bind(wx.EVT_PAINT, self.onPaint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.onLeftClick)
-        self.Bind(wx.EVT_RIGHT_DOWN, self.onRightClick)
-        self.Bind(wx.EVT_MOTION, self.onMotion)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
 
         wsize = (imageSize[0] * self.scale, imageSize[1] * self.scale)
         self.SetSize(wsize)
         self.SetMinSize(wsize)
         self.SetMaxSize(wsize)
 
-    def SetZoom(self, n):
-        self.scale = n;
+    def _resize(self):
         imageSize = self.imageSize
         wsize = (imageSize[0] * self.scale, imageSize[1] * self.scale)
         self.SetSize(wsize)
@@ -214,13 +213,22 @@ class DrawControl(wx.Control):
         self.parent.SetScrollRate(1, 1)
         self.Refresh()
 
-    def onPaint(self, event):
+    def SetImage(self, img):
+        self.image = img
+        size = img.GetSize()
+        self.imageSize = (size.x, size.y)
+        self._resize()
+
+    def SetZoom(self, n):
+        self.scale = n;
+        self._resize()
+
+    def OnPaint(self, event):
         (iw, ih) = self.imageSize
         sc = self.scale
         dc = wx.PaintDC(self)
         dc.DrawBitmap(wx.BitmapFromImage(self.image.Scale(iw * sc, ih * sc )), 
                 0, 0)
-
 
     def _setPixel(self, x, y, (r, g, b, a)):
         sc = self.scale
@@ -231,15 +239,15 @@ class DrawControl(wx.Control):
         self.image.SetAlpha(nx, ny, a)
         self.Refresh(False)
 
-    def onLeftClick(self, event):
+    def OnLeftClick(self, event):
         color = self.parent.parent.colorpk.left
         self._setPixel(event.GetX(), event.GetY(), color)
 
-    def onRightClick(self, event):
+    def OnRightClick(self, event):
         color = self.parent.parent.colorpk.right
         self._setPixel(event.GetX(), event.GetY(), color)
 
-    def onMotion(self, event):
+    def OnMotion(self, event):
         if event.Dragging():
             if event.LeftIsDown():
                 color = self.parent.parent.colorpk.left
@@ -269,10 +277,14 @@ class DrawWindow(wx.ScrolledWindow):
     def SetZoom(self, n):
         self.drawControl.SetZoom(n)
 
+    def SetImage(self, img):
+        self.drawControl.SetImage(img)
+
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
-        self.dirname=''
+        self.filename = ''
+        self.dirname = ''
 
         wx.Frame.__init__(self, parent, title=title)
         self.drawWindow = DrawWindow(self)
@@ -343,9 +355,10 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.filename = dlg.GetFilename()
             self.dirname = dlg.GetDirectory()
-            f = open(os.path.join(self.dirname, self.filename), 'r')
-            self.control.SetValue(f.read())
-            f.close()
+            img = wx.Image(os.path.join(self.dirname, self.filename))
+            if not img.HasAlpha():
+                img.InitAlpha()
+            self.drawWindow.SetImage(img)
         dlg.Destroy()
 
 
