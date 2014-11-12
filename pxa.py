@@ -213,6 +213,10 @@ class DrawControl(wx.Control):
         self.parent.SetScrollRate(1, 1)
         self.Refresh()
 
+    def _convert16(self, val):
+        base = val >> 4
+        return (base << 4) + base
+
     def SetImage(self, img):
         self.image = img
         size = img.GetSize()
@@ -220,8 +224,23 @@ class DrawControl(wx.Control):
         self._resize()
 
     def SetZoom(self, n):
-        self.scale = n;
+        self.scale = n
         self._resize()
+
+    def Convert16(self):
+        for x in range(self.imageSize[0]):
+            for y in range(self.imageSize[1]):
+                r = self.image.GetRed(x, y)
+                g = self.image.GetGreen(x, y)
+                b = self.image.GetBlue(x, y)
+                a = self.image.GetAlpha(x, y)
+                r = self._convert16(r)
+                g = self._convert16(g)
+                b = self._convert16(b)
+                a = self._convert16(a)
+                self.image.SetRGB(x, y, r, g, b)
+                self.image.SetAlpha(x, y, a)
+        self.Refresh(False)
 
     def OnPaint(self, event):
         (iw, ih) = self.imageSize
@@ -274,12 +293,6 @@ class DrawWindow(wx.ScrolledWindow):
         self.SetAutoLayout(1)
         sizerh.Fit(self)
 
-    def SetZoom(self, n):
-        self.drawControl.SetZoom(n)
-
-    def SetImage(self, img):
-        self.drawControl.SetImage(img)
-
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -300,6 +313,11 @@ class MainWindow(wx.Frame):
                 " Information about this program")
         menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
 
+        # Create an image menu
+        imageMenu = wx.Menu()
+        convert = imageMenu.Append(wx.ID_ANY, "16bit RGBA", 
+                "Convert to 16bit RGBA")
+
         # Create a zoom menu
         zoomMenu = wx.Menu()
         z100 = zoomMenu.Append(wx.ID_ANY, "100%", "Zoom 100%")
@@ -311,6 +329,7 @@ class MainWindow(wx.Frame):
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
+        menuBar.Append(imageMenu, "Image")
         menuBar.Append(zoomMenu, "Zoom")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
@@ -323,6 +342,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.Zoom(4), z400)
         self.Bind(wx.EVT_MENU, self.Zoom(8), z800)
         self.Bind(wx.EVT_MENU, self.Zoom(16), z1600)
+        self.Bind(wx.EVT_MENU, self.Convert16, convert)
 
         # Use some sizers to see layout options
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -334,9 +354,6 @@ class MainWindow(wx.Frame):
         self.SetAutoLayout(1)
         self.sizer.Fit(self)
         self.Show()
-
-    def Zoom(self, n):
-        return lambda e: self.drawWindow.SetZoom(n)
 
     def OnAbout(self, e):
         # Create a message dialog box
@@ -358,8 +375,14 @@ class MainWindow(wx.Frame):
             img = wx.Image(os.path.join(self.dirname, self.filename))
             if not img.HasAlpha():
                 img.InitAlpha()
-            self.drawWindow.SetImage(img)
+            self.drawWindow.drawControl.SetImage(img)
         dlg.Destroy()
+
+    def Zoom(self, n):
+        return lambda e: self.drawWindow.drawControl.SetZoom(n)
+
+    def Convert16(self, e):
+        self.drawWindow.drawControl.Convert16()
 
 
 def main():
