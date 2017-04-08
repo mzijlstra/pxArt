@@ -8,6 +8,8 @@ class ColorControl(wx.Control):
         represents one of 16 shades of the given color """
     nonePen = False
     noneBrush = False
+    blackPen = False
+    whitePen = False
 
     def __init__(self, parent, cname, color=(0,0,0), id=wx.ID_ANY, 
             pos=wx.DefaultPosition, size=(20,20), style=wx.NO_BORDER, 
@@ -33,6 +35,21 @@ class ColorControl(wx.Control):
         ColorControl.nonePen =  gc.CreatePen(wx.Pen(
             wx.Colour(0,0,0,0), 1, wx.TRANSPARENT))
         ColorControl.noneBrush = gc.CreateBrush(wx.Brush((0,0,0,0)))
+        ColorControl.whitePen =  gc.CreatePen(wx.Pen(
+            wx.Colour(255,255,255,255), 1, wx.SOLID))
+        ColorControl.blackPen =  gc.CreatePen(wx.Pen(
+            wx.Colour(0,0,0,255), 1, wx.SOLID))
+
+    def _drawSelected(self, gc):
+        if self.selected: 
+            gc.SetBrush(ColorControl.noneBrush)
+            gc.SetPen(ColorControl.whitePen)
+            gc.DrawRectangle(0,0,19,19)
+            gc.SetPen(ColorControl.blackPen)
+            gc.StrokeLine(0,0,9,0)
+            gc.StrokeLine(0,0,0,9)
+            gc.StrokeLine(19,19,10,19)
+            gc.StrokeLine(19,19,19,10)
 
     def OnPaint(self, event):
         """ make the item look the way it should """
@@ -44,14 +61,7 @@ class ColorControl(wx.Control):
         gc.SetPen(ColorControl.nonePen)
         gc.SetBrush(self.brush)
         gc.DrawRectangle(0,0,20,20)
-
-        if self.selected: 
-            sel = max(self.color[0] + self.color[1] + self.color[2], 128)
-            self.selectPen =  gc.CreatePen(wx.Pen(
-                        wx.Colour(sel, sel, sel, 255), 1, wx.SOLID))
-            gc.SetBrush(ColorControl.noneBrush)
-            gc.SetPen(self.selectPen)
-            gc.DrawRectangle(0,0,18,18)
+        self._drawSelected(gc)
 
     def OnLeftClick(self, event):
         """ Remove selection from all other ColorControls of this color and 
@@ -86,17 +96,7 @@ class AlphaControl(ColorControl):
         c = self.parent.colorDisplay.color
         gc.SetBrush(wx.Brush((c[0], c[1], c[2], self.color[3])))
         gc.DrawRectangle(0,0,20,20)
-
-        if self.selected: 
-            sel = self.color[3]
-            if sel > 128:
-                sel = int(255 - (c[0] + c[1] + c[2]) / 3)
-            self.selectPen =  gc.CreatePen(wx.Pen(
-                        wx.Colour(sel, sel, sel, 255), 1, wx.SOLID))
-            gc.SetBrush(ColorControl.noneBrush)
-            gc.SetPen(self.selectPen)
-            gc.DrawRectangle(0,0,18,18)
-
+        self._drawSelected(gc)
 
 class ColorDisplay(wx.Window):
     """ The color display shows a selected color (combination of selected
