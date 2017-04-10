@@ -8,7 +8,7 @@ class ColorControl(wx.Control):
         represents one of 16 shades of the given color """
 
     def __init__(self, parent, cname, color=(0,0,0), id=wx.ID_ANY, 
-            pos=wx.DefaultPosition, size=(20,20), style=wx.BORDER_NONE, 
+            pos=wx.DefaultPosition, size=(20,20), style=wx.NO_BORDER, 
             validator=wx.DefaultValidator, name="ColorControl"):
         """ Constructor for the color control"""
 
@@ -31,8 +31,7 @@ class ColorControl(wx.Control):
         noneBrush = gc.CreateBrush(wx.Brush((0,0,0,0)))
         brush = gc.CreateBrush(wx.Brush(self.color))
         # create an outline color that will contrast enough to see
-        sel = max(self.color[0] + self.color[1] + self.color[2], 128)
-        selectPen = gc.CreatePen(wx.Pen(wx.Colour(sel, sel, sel, 255)))
+        selectPen = gc.CreatePen(wx.Pen(wx.Colour(255, 255, 255, 255)))
 
         gc.SetPen(nonePen)
         gc.SetBrush(brush)
@@ -54,7 +53,7 @@ class ColorControl(wx.Control):
 class AlphaControl(ColorControl):
     """ The alpha control is a color control, but then for alpha values """
     def __init__(self, parent, cname, color=(0,0,0), id=wx.ID_ANY, 
-            pos=wx.DefaultPosition, size=(20,20), style=wx.BORDER_NONE, 
+            pos=wx.DefaultPosition, size=(20,20), style=wx.NO_BORDER, 
             validator=wx.DefaultValidator, name="ColorControl"):
         """ Constructor for the alpha control """
 
@@ -98,7 +97,7 @@ class ColorPicker(wx.Window):
     """ This is the combination of 16 red, green, blue, alpha ColorControls 
         and the ColorDisplay """ 
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
-            size=wx.DefaultSize, style=wx.NO_BORDER, name="ColorPicker"):
+            size=(80,320), style=wx.NO_BORDER, name="ColorPicker"):
         """ Contructor for the ColorPicker """
 
         wx.Window.__init__(self, parent, id, pos, size, style, name)
@@ -174,16 +173,26 @@ class ColorPicker(wx.Window):
             c[2] = color[2]
         else:
             c[3] = color[3]
+    
+    def UpdateColor(self, color):
+        self.ClearSelection("red")
+        self.ClearSelection("green")
+        self.ClearSelection("blue")
+        self.ClearSelection("alpha")
+        self.reds[15 - (color[0] >> 4)].selected = True
+        self.greens[15 - (color[1] >> 4)].selected = True
+        self.blues[15 - (color[2] >> 4)].selected = True
+        self.alphas[15 - (color[3] >> 4)].selected = True
+        self.Refresh()
 
 
-class ColorDisplay(wx.Control):
+class ColorDisplay(wx.Window):
     """ The color display shows a selected color (combination of selected
         red, green, blue, and alpha values). """
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
-            size=(50,40), style=wx.BORDER_DEFAULT, name="ColorPicker", 
+            size=(50,40), style=wx.NO_BORDER, name="ColorPicker", 
             color=None):
         """ Constructor for the ColorDisplay """
-
         wx.Window.__init__(self, parent, id, pos, size, style, name)
         self.parent = parent
         self.SetInitialSize(size)
@@ -211,6 +220,8 @@ class ColorDisplay(wx.Control):
         self.selected = True
         setattr(self, btn, True)
         self.parent.selected = self
+        setattr(self.parent, btn, self)
+        self.parent.parent.colorPicker.UpdateColor(self.color)
 
     def OnPaint(self, event):
         """ Draws its color """
@@ -251,27 +262,28 @@ class ColorDisplay(wx.Control):
         if self.left:
             gc.SetBrush(selectBrush)
             gc.SetPen(selectPen)
-            gc.DrawEllipse(5,20,10,10)
+            gc.DrawEllipse(10,22,8,8)
             
         if self.right:
             gc.SetBrush(selectBrush)
             gc.SetPen(selectPen)
-            gc.DrawEllipse(35,20,10,10)
+            gc.DrawRectangle(32,22,8,8)
             
         if self.middle:
             gc.SetBrush(selectBrush)
             gc.SetPen(selectPen)
-            gc.DrawEllipse(20,5,10,10)
+            gc.DrawLines([[20,19], [25,10], [30,19]])
             
 
 
-class ColorPresetPanel(wx.Window):
+class ColorPresetPanel(wx.Panel):
     """ This class contains 10 color Displays """
 
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
-            size=wx.DefaultSize, style=wx.NO_BORDER, name="ColorPicker"):
+            size=wx.DefaultSize, style=wx.NO_BORDER, name="ColorPresetPanel"):
         """ Contructor for the ColorPresetPanel """
-        wx.Window.__init__(self, parent, id, pos, size, style, name)
+        wx.Panel.__init__(self, parent, id, pos, size, style, name)
+        self.parent = parent
 
         presets = []
         # Black, white, transparent
@@ -279,18 +291,18 @@ class ColorPresetPanel(wx.Window):
         presets.append(ColorDisplay(self, color=(255,255,255,255)))
         presets.append(ColorDisplay(self, color=(0,0,0,0)))
         # Colors of the rainbow ROY G BIV
-        presets.append(ColorDisplay(self, color=(250,0,0,255)))
-        presets.append(ColorDisplay(self, color=(250,150,40,255)))
-        presets.append(ColorDisplay(self, color=(254,245,25,255)))
-        presets.append(ColorDisplay(self, color=(90,175,40,255)))
-        presets.append(ColorDisplay(self, color=(25,15,155,255)))
-        presets.append(ColorDisplay(self, color=(150,10,125,255)))
-        presets.append(ColorDisplay(self, color=(110,10,130,255)))
+        presets.append(ColorDisplay(self, color=(255,0,0,255)))
+        presets.append(ColorDisplay(self, color=(255,144,32,255)))
+        presets.append(ColorDisplay(self, color=(255,255,0,255)))
+        presets.append(ColorDisplay(self, color=(80,176,32,255)))
+        presets.append(ColorDisplay(self, color=(0,0,160,255)))
+        presets.append(ColorDisplay(self, color=(160,0,128,255)))
+        presets.append(ColorDisplay(self, color=(96,0,128,255)))
         self.presets = presets
 
         presetsSizer = wx.BoxSizer(wx.HORIZONTAL)
         for i in range(0,10):
-            presetsSizer.Add(self.presets[i], 1, wx.ALIGN_LEFT, 10)
+            presetsSizer.Add(self.presets[i], 1, wx.ALIGN_LEFT, 0)
 
         self.selected = presets[0]
         presets[0].selected = True
@@ -298,7 +310,7 @@ class ColorPresetPanel(wx.Window):
         presets[0].left = True
         self.right = presets[1]
         presets[1].right = True
-        self.middel = presets[2]
+        self.middle = presets[2]
         presets[2].middle = True
 
         self.SetSizer(presetsSizer)
@@ -319,7 +331,6 @@ class DrawControl(wx.Control):
             style=wx.BORDER_DEFAULT, validator=wx.DefaultValidator,
                     name="DrawControl"):
         """ Constructor for DrawControl """
-
         wx.Control.__init__(self, parent, id, pos, size, style, validator,name)
 
         self.parent = parent
@@ -333,6 +344,8 @@ class DrawControl(wx.Control):
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
+        self.Bind(wx.EVT_MIDDLE_DOWN, self.OnMiddleClick)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
 
         wsize = (imageSize[0] * self.scale, imageSize[1] * self.scale)
@@ -403,15 +416,36 @@ class DrawControl(wx.Control):
 
     def OnLeftClick(self, event):
         """ The onLeftClick handler function """
-        color = self.parent.parent.colorpk.colorDisplay.color
+        color = self.parent.parent.colorPresetPanel.left.color
         self._setPixel(event.GetX(), event.GetY(), color)
+        self.parent.parent.colorPresetPanel.left.OnClick("left")
+
+    def OnRightClick(self, event):
+        """ The onLeftClick handler function """
+        color = self.parent.parent.colorPresetPanel.right.color
+        self._setPixel(event.GetX(), event.GetY(), color)
+        self.parent.parent.colorPresetPanel.right.OnClick("right")
+
+    def OnMiddleClick(self, event):
+        """ The onLeftClick handler function """
+        color = self.parent.parent.colorPresetPanel.middle.color
+        self._setPixel(event.GetX(), event.GetY(), color)
+        self.parent.parent.colorPresetPanel.middle.OnClick("middle")
 
     def OnMotion(self, event):
         """ The onMotion handler function """
         if event.Dragging():
             if event.LeftIsDown():
-                color = self.parent.parent.colorpk.colorDisplay.color
-                self._setPixel(event.GetX(), event.GetY(), color)
+                color = self.parent.parent.colorPresetPanel.left.color
+                btn = "left"
+            if event.RightIsDown():
+                color = self.parent.parent.colorPresetPanel.right.color
+                btn = "right"
+            if event.MiddleIsDown():
+                color = self.parent.parent.colorPresetPanel.middle.color
+                btn = "middle"
+            self._setPixel(event.GetX(), event.GetY(), color)
+            getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
 
 
 class DrawWindow(wx.ScrolledWindow):
@@ -419,7 +453,6 @@ class DrawWindow(wx.ScrolledWindow):
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
             size=(800,600), style=wx.BORDER_DEFAULT, name="DrawWindow"):
         """ The constructor for the DrawWindow """
-
         wx.ScrolledWindow.__init__(self, parent, id, pos, size, style, name)
         self.parent = parent
 
@@ -437,13 +470,13 @@ class DrawWindow(wx.ScrolledWindow):
 class MainWindow(wx.Frame):
     """ The main window for the Pixel Art Editor """
     def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, title=title)
         self.filename = ''
         self.dirname = ''
 
-        wx.Frame.__init__(self, parent, title=title)
 
         # create our custom color picker control
-        self.colorpk = ColorPicker(self)
+        self.colorPicker = ColorPicker(self)
         self.colorPresetPanel = ColorPresetPanel(self)
 
         #self.CreateStatusBar() # A Statusbar in the bottom of the window
@@ -489,10 +522,10 @@ class MainWindow(wx.Frame):
         # Use some sizers to see layout options
         self.drawWindow = DrawWindow(self)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer.Add(self.colorpk, 0, wx.SHAPED)
+        self.sizer.Add(self.colorPicker, 0, wx.SHAPED)
         sz = wx.BoxSizer(wx.VERTICAL)
+        sz.Add(self.colorPresetPanel, 0, wx.ALIGN_LEFT)
         sz.Add(self.drawWindow, 1, wx.EXPAND)
-        sz.Add(self.colorPresetPanel, 0, wx.ALIGN_LEFT, 1)
         self.sizer.Add(sz,1)
 
         #Layout sizers
@@ -500,6 +533,9 @@ class MainWindow(wx.Frame):
         self.SetAutoLayout(1)
         self.sizer.Fit(self)
         self.Show()
+
+        # set starting zoom level
+        self.drawWindow.drawControl.SetZoom(8)
 
     def OnAbout(self, e):
         """ The onAbout handler, shows the about dialog """
