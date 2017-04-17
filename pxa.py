@@ -343,9 +343,9 @@ class DrawControl(wx.Control):
         parent.SetScrollRate(1, 1)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
-        self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightClick)
-        self.Bind(wx.EVT_MIDDLE_DOWN, self.OnMiddleClick)
+        self.Bind(wx.EVT_LEFT_DOWN, self.Click("left"))
+        self.Bind(wx.EVT_RIGHT_DOWN, self.Click("right"))
+        self.Bind(wx.EVT_MIDDLE_DOWN, self.Click("middle"))
         self.Bind(wx.EVT_MOTION, self.OnMotion)
 
         wsize = (imageSize[0] * self.scale, imageSize[1] * self.scale)
@@ -414,23 +414,15 @@ class DrawControl(wx.Control):
         self.image.SetAlpha(nx, ny, a)
         self.Refresh(False)
 
-    def OnLeftClick(self, event):
-        """ The onLeftClick handler function """
-        color = self.parent.parent.colorPresetPanel.left.color
-        self._setPixel(event.GetX(), event.GetY(), color)
-        self.parent.parent.colorPresetPanel.left.OnClick("left")
+    def Click(self, btn):
+        """ Creates an onclick handler """
+        return lambda e: self.OnClick(e, btn)
 
-    def OnRightClick(self, event):
-        """ The onLeftClick handler function """
-        color = self.parent.parent.colorPresetPanel.right.color
+    def OnClick(self, event, btn):
+        """ Generic event handler for left, right, middle """
+        color = getattr(self.parent.parent.colorPresetPanel, btn).color
         self._setPixel(event.GetX(), event.GetY(), color)
-        self.parent.parent.colorPresetPanel.right.OnClick("right")
-
-    def OnMiddleClick(self, event):
-        """ The onLeftClick handler function """
-        color = self.parent.parent.colorPresetPanel.middle.color
-        self._setPixel(event.GetX(), event.GetY(), color)
-        self.parent.parent.colorPresetPanel.middle.OnClick("middle")
+        getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
 
     def OnMotion(self, event):
         """ The onMotion handler function """
