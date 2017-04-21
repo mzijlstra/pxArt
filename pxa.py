@@ -494,9 +494,14 @@ class MainWindow(wx.Frame):
         zoomMenu = wx.Menu()
         z100 = zoomMenu.Append(wx.ID_ANY, "100%", "Zoom 100%")
         z200 = zoomMenu.Append(wx.ID_ANY, "200%", "Zoom 200%")
+        z300 = zoomMenu.Append(wx.ID_ANY, "300%", "Zoom 300%")
         z400 = zoomMenu.Append(wx.ID_ANY, "400%", "Zoom 400%")
+        z500 = zoomMenu.Append(wx.ID_ANY, "500%", "Zoom 500%")
+        z600 = zoomMenu.Append(wx.ID_ANY, "600%", "Zoom 600%")
+        z700 = zoomMenu.Append(wx.ID_ANY, "700%", "Zoom 700%")
         z800 = zoomMenu.Append(wx.ID_ANY, "800%", "Zoom 800%")
-        z1600 = zoomMenu.Append(wx.ID_ANY, "1600%", "Zoom 1600%")
+        z900 = zoomMenu.Append(wx.ID_ANY, "900%", "Zoom 900%")
+        z1000 = zoomMenu.Append(wx.ID_ANY, "1000%", "Zoom 1000%")
 
         # Creating the menubar.
         menuBar = wx.MenuBar()
@@ -514,9 +519,14 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
         self.Bind(wx.EVT_MENU, self.Zoom(1), z100)
         self.Bind(wx.EVT_MENU, self.Zoom(2), z200)
+        self.Bind(wx.EVT_MENU, self.Zoom(3), z300)
         self.Bind(wx.EVT_MENU, self.Zoom(4), z400)
+        self.Bind(wx.EVT_MENU, self.Zoom(5), z500)
+        self.Bind(wx.EVT_MENU, self.Zoom(6), z600)
+        self.Bind(wx.EVT_MENU, self.Zoom(7), z700)
         self.Bind(wx.EVT_MENU, self.Zoom(8), z800)
-        self.Bind(wx.EVT_MENU, self.Zoom(16), z1600)
+        self.Bind(wx.EVT_MENU, self.Zoom(9), z900)
+        self.Bind(wx.EVT_MENU, self.Zoom(10), z1000)
         self.Bind(wx.EVT_MENU, self.Convert16, convert)
 
         # Use some sizers to see layout options
