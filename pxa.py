@@ -1,3 +1,5 @@
+import png
+from array import array
 import wxversion
 wxversion.select('3.0')
 import wx
@@ -475,7 +477,10 @@ class MainWindow(wx.Frame):
 
         # Setting up the menu.
         filemenu= wx.Menu()
+        menuNew = filemenu.Append(wx.ID_NEW, "&New", "Create a new image")
         menuOpen = filemenu.Append(wx.ID_OPEN, "&Open"," Open a file to edit")
+        menuSave = filemenu.Append(wx.ID_SAVE, "&Save", "Save to file")
+        menuSaveAs = filemenu.Append(wx.ID_SAVEAS, "Save As", "Save to specified file")
         menuAbout= filemenu.Append(wx.ID_ABOUT, "&About",
                 " Information about this program")
         menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
@@ -501,7 +506,10 @@ class MainWindow(wx.Frame):
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
         # Events.
+        self.Bind(wx.EVT_MENU, self.OnNew, menuNew)
         self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
+        self.Bind(wx.EVT_MENU, self.OnSave, menuSave)
+        self.Bind(wx.EVT_MENU, self.OnSaveAs, menuSaveAs)
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
         self.Bind(wx.EVT_MENU, self.Zoom(1), z100)
@@ -529,7 +537,25 @@ class MainWindow(wx.Frame):
         # set starting zoom level
         self.drawWindow.drawControl.SetZoom(8)
 
+    def OnNew(self, e):
+# TODO create a custom dialog, as shown at:http://zetcode.com/wxpython/dialogs/
+        pass
+
+    def OnOpen(self, e):
+        """ Open an image file and display it """
+        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", 
+                "*.*", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetFilename()
+            dirname = dlg.GetDirectory()
+            img = wx.Image(os.path.join(dirname, filename))
+            if not img.HasAlpha():
+                img.InitAlpha()
+            self.drawWindow.drawControl.SetImage(img)
+        dlg.Destroy()
+
     def OnAbout(self, e):
+#TODO use a wx.AboutBox instead, as shown: http://zetcode.com/wxpython/dialogs/
         """ The onAbout handler, shows the about dialog """
         # Create a message dialog box
         dlg = wx.MessageDialog(self, " A Pixel Art Editor \n in wxPython", 
@@ -537,22 +563,44 @@ class MainWindow(wx.Frame):
         dlg.ShowModal() # Shows it
         dlg.Destroy() # finally destroy it when finished.
 
-    def OnExit(self, e):
-        """ The onExit handler """
-        self.Close(True)  # Close the frame.
+    def _Save(self, filename):
+        img = self.drawWindow.drawControl.image
+        data = list()
 
-    def OnOpen(self, e):
-        """ Open an image file and display it """
-        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", 
-                "*.*", wx.OPEN)
+        for y in range(img.GetHeight()):
+            line = array("B")
+            for x in range(img.GetWidth()):
+                line.append(img.GetRed(x, y))
+                line.append(img.GetGreen(x, y))
+                line.append(img.GetBlue(x, y))
+                line.append(img.GetAlpha(x, y))
+            data.append(line)
+
+        png.from_array(data, "RGBA").save(filename)
+
+
+    def OnSave(self, e):
+        if not self.filename:
+            return self.OnSaveAs(e)
+        self._Save(self.filename)
+
+    def OnSaveAs(self, e):
+        """ Create and show the save dialog """
+        dlg = wx.FileDialog(self, message = "Save file as ...", 
+                defaultDir = self.dirname, defaultFile = "", 
+                wildcard = "*.*", 
+                style = wx.FD_SAVE|wx.FD_CHANGE_DIR|wx.FD_OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_OK:
             self.filename = dlg.GetFilename()
             self.dirname = dlg.GetDirectory()
-            img = wx.Image(os.path.join(self.dirname, self.filename))
-            if not img.HasAlpha():
-                img.InitAlpha()
-            self.drawWindow.drawControl.SetImage(img)
-        dlg.Destroy()
+            if not self.filename.endswith(".png"):
+                self.filename += ".png"
+            self._Save(self.filename)
+
+
+    def OnExit(self, e):
+        """ The onExit handler """
+        self.Close(True)  # Close the frame.
 
     def Zoom(self, n):
         """ Set the zoom to the amount clicked on """
