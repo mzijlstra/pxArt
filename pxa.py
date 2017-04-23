@@ -341,6 +341,7 @@ class DrawControl(wx.Control):
             imageSize[0], imageSize[1], 255,255,255,255))
         self.color = color
         self.scale = sc = 1
+        self.prev = None
         parent.SetVirtualSize((imageSize[0] * sc, imageSize[1] * sc))
         parent.SetScrollRate(1, 1)
 
@@ -414,7 +415,42 @@ class DrawControl(wx.Control):
         ny = y / sc
         self.image.SetRGB(nx, ny, r, g, b)
         self.image.SetAlpha(nx, ny, a)
-        self.Refresh(False)
+
+    def _drawLine(self, (r,g,b,a), x0, y0, x1, y1):
+        sc = self.scale
+        x0 = int(x0/sc)
+        y0 = int(y0/sc)
+        x1 = int(x1/sc)
+        y1 = int(y1/sc)
+        (w, h) = self.imageSize
+
+        if x0 == x1 and y0 == y1 and x >= 0 and x < w and y >= 0 and y < h:
+            self.image.SetRGB(x0, y0, r, g, b)
+            self.image.SetAlpha(x0, y0, a)
+            return
+
+        if abs(x0 - x1) > abs(y0 - y1):
+            dy = abs(float(y1 - y0) / (x1 - x0))
+            if y1 < y0:
+                dy = -dy
+            dx = (x1 - x0) / abs(x1 - x0)
+            y = y0 
+            for x in range(x0, x1 + dx, dx):
+                if not(x < 0 or x >= w or y < 0 or y >= h):
+                    self.image.SetRGB(x, y, r, g, b)
+                    self.image.SetAlpha(x, y, a)
+                y += dy
+        else:
+            dx = abs(float(x1 -  x0) / (y1 - y0))
+            if x1 < x0:
+                dx = -dx
+            dy = (y1 - y0) / abs(y1 - y0)
+            x = x0
+            for y in range(y0, y1 + dy, dy):
+                if not(x < 0 or x >= w or y < 0 or y >= h):
+                    self.image.SetRGB(x, y, r, g, b)
+                    self.image.SetAlpha(x, y, a)
+                x += dx
 
     def Click(self, btn):
         """ Creates an onclick handler """
@@ -422,9 +458,13 @@ class DrawControl(wx.Control):
 
     def OnClick(self, event, btn):
         """ Generic event handler for left, right, middle """
+        x = event.GetX()
+        y = event.GetY()
         color = getattr(self.parent.parent.colorPresetPanel, btn).color
-        self._setPixel(event.GetX(), event.GetY(), color)
+        self._setPixel(x, y, color)
         getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
+        self.prev = {"x":x, "y":y}
+        self.Refresh(False)
 
     def OnMotion(self, event):
         """ The onMotion handler function """
@@ -438,8 +478,12 @@ class DrawControl(wx.Control):
             if event.MiddleIsDown():
                 color = self.parent.parent.colorPresetPanel.middle.color
                 btn = "middle"
-            self._setPixel(event.GetX(), event.GetY(), color)
             getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
+            x = event.GetX()
+            y = event.GetY()
+            self._drawLine(color, self.prev["x"], self.prev["y"], x, y)
+            self.prev = {"x":x, "y":y}
+            self.Refresh(False)
 
 
 class DrawWindow(wx.ScrolledWindow):
@@ -460,6 +504,52 @@ class DrawWindow(wx.ScrolledWindow):
         self.SetAutoLayout(1)
         sizerh.Fit(self)
 
+class NewImageDialog(wx.Dialog):
+    """ Dialog window for creating a new image """
+    def __init__(self, parent, id=wx.ID_ANY, title="New Image", 
+            pos=wx.DefaultPosition, size=(250,200), style=wx.BORDER_DEFAULT, 
+            name="NewImageDialog"):
+        wx.Dialog.__init__(self, parent, id, title, pos, size, style, name)
+            
+        okButton = wx.Button(self, label='Ok')
+        closeButton = wx.Button(self, label='Close')
+		
+        okButton.Bind(wx.EVT_BUTTON, self.OnOk)
+        closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+
+        labels = wx.BoxSizer(wx.VERTICAL)
+        labels.Add(wx.StaticText(self, label="Width"))
+        labels.Add(wx.StaticText(self, label="Height"))
+
+        inputs = wx.BoxSizer(wx.VERTICAL)
+        self.width = wx.TextCtrl(self)
+        self.height = wx.TextCtrl(self)
+        inputs.Add(self.width)
+        inputs.Add(self.height)
+
+        dataSizer = wx.BoxSizer(wx.HORIZONTAL)
+        dataSizer.Add(labels)
+        dataSizer.Add(inputs)
+
+        btnSizer = wx.BoxSizer(wx.HORIZONTAL)
+        btnSizer.Add(okButton)
+        btnSizer.Add(closeButton)
+        btnSizer.Fit(self)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(dataSizer)
+        sizer.Add(btnSizer)
+
+        self.SetSizer(sizer)
+        self.SetAutoLayout(1)
+        sizer.Fit(self)
+        self.Show()
+
+    def OnClose(self, e):
+        self.Destroy()
+
+    def OnOk(self, e):
+        pass
 
 class MainWindow(wx.Frame):
     """ The main window for the Pixel Art Editor """
@@ -546,10 +636,19 @@ class MainWindow(wx.Frame):
 
         # set starting zoom level
         self.drawWindow.drawControl.SetZoom(8)
+        self.drawWindow.drawControl._drawLine((0,0,0,255), 0,0,100,100)
+        self.drawWindow.drawControl._drawLine((0,0,0,255), 150,100,50,0)
+        self.drawWindow.drawControl._drawLine((0,0,0,255), 0,200,100,100)
+        self.drawWindow.drawControl._drawLine((0,0,0,255), 150,100,50,200)
+
+#        self.drawWindow.drawControl._drawLine((0,0,0,255), 0, 0, 100, 0)
+#        self.drawWindow.drawControl._drawLine((0,0,0,255), 100, 100, 0, 100)
 
     def OnNew(self, e):
 # TODO create a custom dialog, as shown at:http://zetcode.com/wxpython/dialogs/
-        pass
+        dlg = NewImageDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def OnOpen(self, e):
         """ Open an image file and display it """
