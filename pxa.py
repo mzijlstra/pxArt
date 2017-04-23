@@ -507,42 +507,40 @@ class DrawWindow(wx.ScrolledWindow):
 class NewImageDialog(wx.Dialog):
     """ Dialog window for creating a new image """
     def __init__(self, parent, id=wx.ID_ANY, title="New Image", 
-            pos=wx.DefaultPosition, size=(250,200), style=wx.BORDER_DEFAULT, 
+            pos=wx.DefaultPosition, size=(250,300), style=wx.BORDER_DEFAULT, 
             name="NewImageDialog"):
         wx.Dialog.__init__(self, parent, id, title, pos, size, style, name)
             
-        okButton = wx.Button(self, label='Ok')
-        closeButton = wx.Button(self, label='Close')
+        okButton = wx.Button(self, label='Ok', id=wx.ID_OK)
+        closeButton = wx.Button(self, label='Close', id=wx.ID_CLOSE)
 		
         okButton.Bind(wx.EVT_BUTTON, self.OnOk)
         closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
 
-        labels = wx.BoxSizer(wx.VERTICAL)
-        labels.Add(wx.StaticText(self, label="Width"))
-        labels.Add(wx.StaticText(self, label="Height"))
-
-        inputs = wx.BoxSizer(wx.VERTICAL)
         self.width = wx.TextCtrl(self)
-        self.height = wx.TextCtrl(self)
-        inputs.Add(self.width)
-        inputs.Add(self.height)
+        self.width.SetValue("64")
+        wBox = wx.BoxSizer(wx.HORIZONTAL)
+        wBox.Add(wx.StaticText(self, label="Width", size=(60, 40)))
+        wBox.Add(self.width)
 
-        dataSizer = wx.BoxSizer(wx.HORIZONTAL)
-        dataSizer.Add(labels)
-        dataSizer.Add(inputs)
+        self.height = wx.TextCtrl(self)
+        self.height.SetValue("64")
+        hBox = wx.BoxSizer(wx.HORIZONTAL)
+        hBox.Add(wx.StaticText(self, label="Height", size=(60, 40)))
+        hBox.Add(self.height)
 
         btnSizer = wx.BoxSizer(wx.HORIZONTAL)
         btnSizer.Add(okButton)
         btnSizer.Add(closeButton)
-        btnSizer.Fit(self)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(dataSizer)
+        sizer.Add(wBox)
+        sizer.Add(hBox)
         sizer.Add(btnSizer)
+        sizer.Fit(self)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(1)
-        sizer.Fit(self)
         self.Show()
 
     def OnClose(self, e):
@@ -636,13 +634,6 @@ class MainWindow(wx.Frame):
 
         # set starting zoom level
         self.drawWindow.drawControl.SetZoom(8)
-        self.drawWindow.drawControl._drawLine((0,0,0,255), 0,0,100,100)
-        self.drawWindow.drawControl._drawLine((0,0,0,255), 150,100,50,0)
-        self.drawWindow.drawControl._drawLine((0,0,0,255), 0,200,100,100)
-        self.drawWindow.drawControl._drawLine((0,0,0,255), 150,100,50,200)
-
-#        self.drawWindow.drawControl._drawLine((0,0,0,255), 0, 0, 100, 0)
-#        self.drawWindow.drawControl._drawLine((0,0,0,255), 100, 100, 0, 100)
 
     def OnNew(self, e):
 # TODO create a custom dialog, as shown at:http://zetcode.com/wxpython/dialogs/
