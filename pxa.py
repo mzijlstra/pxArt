@@ -424,7 +424,7 @@ class DrawControl(wx.Control):
         y1 = int(y1/sc)
         (w, h) = self.imageSize
 
-        if x0 == x1 and y0 == y1 and x >= 0 and x < w and y >= 0 and y < h:
+        if x0 == x1 and y0 == y1 and x0 >= 0 and x0 < w and y0 >= 0 and y0 < h:
             self.image.SetRGB(x0, y0, r, g, b)
             self.image.SetAlpha(x0, y0, a)
             return
@@ -510,20 +510,22 @@ class NewImageDialog(wx.Dialog):
             pos=wx.DefaultPosition, size=(250,300), style=wx.BORDER_DEFAULT, 
             name="NewImageDialog"):
         wx.Dialog.__init__(self, parent, id, title, pos, size, style, name)
-            
+        
+        self.parent = parent
+        self.width = wx.TextCtrl(self)
+        self.height = wx.TextCtrl(self)
+
         okButton = wx.Button(self, label='Ok', id=wx.ID_OK)
         closeButton = wx.Button(self, label='Close', id=wx.ID_CLOSE)
 		
         okButton.Bind(wx.EVT_BUTTON, self.OnOk)
         closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
 
-        self.width = wx.TextCtrl(self)
         self.width.SetValue("64")
         wBox = wx.BoxSizer(wx.HORIZONTAL)
         wBox.Add(wx.StaticText(self, label="Width", size=(60, 40)))
         wBox.Add(self.width)
 
-        self.height = wx.TextCtrl(self)
         self.height.SetValue("64")
         hBox = wx.BoxSizer(wx.HORIZONTAL)
         hBox.Add(wx.StaticText(self, label="Height", size=(60, 40)))
@@ -547,7 +549,11 @@ class NewImageDialog(wx.Dialog):
         self.Destroy()
 
     def OnOk(self, e):
-        pass
+        w = int(self.width.GetValue())
+        h = int(self.height.GetValue())
+        img = wx.ImageFromBitmap(wx.EmptyBitmapRGBA(w, h, 255,255,255,255))
+        self.parent.drawWindow.drawControl.SetImage(img)
+        self.Destroy()
 
 class MainWindow(wx.Frame):
     """ The main window for the Pixel Art Editor """
