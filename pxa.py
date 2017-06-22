@@ -116,23 +116,26 @@ class ColorPicker(wx.Window):
         greenSizer = wx.BoxSizer(wx.VERTICAL)
         blueSizer = wx.BoxSizer(wx.VERTICAL)
         alphaSizer = wx.BoxSizer(wx.VERTICAL)
-        for i in range(0, 16):
+        for i in range(0, 8):
+            val = 255 - i * 32
+            if val < 0:
+                val = 0
             self.reds.append(ColorControl(
-                self, 'red', (255 - i*17, 0, 0, 255)))
+                self, 'red', (val, 0, 0, 255)))
             self.greens.append(ColorControl(
-                self, 'green', (0, 255 - i*17, 0, 255)))
+                self, 'green', (0, val, 0, 255)))
             self.blues.append(ColorControl(
-                self, 'blue', (0, 0, 255 - i*17, 255)))
+                self, 'blue', (0, 0, val, 255)))
             self.alphas.append(AlphaControl(
-                self, 'alpha', (0, 0, 0, 255 - i*17)))
+                self, 'alpha', (0, 0, 0, val)))
             redSizer.Add(self.reds[i], 1, wx.SHAPED)
             greenSizer.Add(self.greens[i], 1, wx.SHAPED)
             blueSizer.Add(self.blues[i], 1, wx.SHAPED)
             alphaSizer.Add(self.alphas[i], 1, wx.SHAPED)
 
-        self.reds[15].selected = True
-        self.greens[15].selected = True
-        self.blues[15].selected = True
+        self.reds[7].selected = True
+        self.greens[7].selected = True
+        self.blues[7].selected = True
         self.alphas[0].selected = True
 
         colors = wx.BoxSizer(wx.HORIZONTAL)
@@ -181,10 +184,10 @@ class ColorPicker(wx.Window):
         self.ClearSelection("green")
         self.ClearSelection("blue")
         self.ClearSelection("alpha")
-        self.reds[15 - (color[0] >> 4)].selected = True
-        self.greens[15 - (color[1] >> 4)].selected = True
-        self.blues[15 - (color[2] >> 4)].selected = True
-        self.alphas[15 - (color[3] >> 4)].selected = True
+        self.reds[7 - (color[0] >> 5)].selected = True
+        self.greens[7 - (color[1] >> 5)].selected = True
+        self.blues[7 - (color[2] >> 5)].selected = True
+        self.alphas[7 - (color[3] >> 5)].selected = True
         self.Refresh()
 
 
@@ -367,10 +370,37 @@ class DrawControl(wx.Control):
         self.parent.SetScrollRate(1, 1)
         self.Refresh()
 
-    def _convert16(self, val):
-        """ Helper function used by Convert16 """ 
+    def _32to16(self, val):
+        """ Helper function used by lowerToBitDepth """ 
         base = val >> 4
         return (base << 4) + base
+
+    def _32to12(self, val):
+        """ Helper function used by lowerToBitDepth """ 
+        base = val >> 5
+        return (base << 5) + (base << 2) + (base >> 1)
+
+    def _32to8(self, val):
+        """ Helper function used by lowerToBitDepth """
+        base = val >> 6
+        return (base << 6) + (base << 4) + (base << 2) + base
+
+    def lowerToBitDepth(self, depth):
+        """ Makes the image look like 16bit RGBA """
+        for x in range(self.imageSize[0]):
+            for y in range(self.imageSize[1]):
+                r = self.image.GetRed(x, y)
+                g = self.image.GetGreen(x, y)
+                b = self.image.GetBlue(x, y)
+                a = self.image.GetAlpha(x, y)
+                method = getattr(self, "_32to"+str(depth))
+                r = method(r)
+                g = method(g)
+                b = method(b)
+                a = method(a)
+                self.image.SetRGB(x, y, r, g, b)
+                self.image.SetAlpha(x, y, a)
+        self.Refresh(False)
 
     def SetImage(self, img):
         """ Start using / displaying the provided image """
@@ -383,22 +413,6 @@ class DrawControl(wx.Control):
         """ Zoom in or out to the provided scale """
         self.scale = n
         self._resize()
-
-    def Convert16(self):
-        """ Makes the image look like 16bit RGBA """
-        for x in range(self.imageSize[0]):
-            for y in range(self.imageSize[1]):
-                r = self.image.GetRed(x, y)
-                g = self.image.GetGreen(x, y)
-                b = self.image.GetBlue(x, y)
-                a = self.image.GetAlpha(x, y)
-                r = self._convert16(r)
-                g = self._convert16(g)
-                b = self._convert16(b)
-                a = self._convert16(a)
-                self.image.SetRGB(x, y, r, g, b)
-                self.image.SetAlpha(x, y, a)
-        self.Refresh(False)
 
     def OnPaint(self, event):
         """ The onPaint handler function """
@@ -579,10 +593,12 @@ class MainWindow(wx.Frame):
                 " Information about this program")
         menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
 
-        # Create an image menu
-        imageMenu = wx.Menu()
-        convert = imageMenu.Append(wx.ID_ANY, "16bit RGBA", 
-                "Convert to 16bit RGBA")
+        # Create a color depth menu
+        depthMenu = wx.Menu()
+        depth32 = depthMenu.Append(wx.ID_ANY, "32bit RGBA", "32bit RGBA")
+        depth16 = depthMenu.Append(wx.ID_ANY, "16bit RGBA", "16bit RGBA")
+        depth12 = depthMenu.Append(wx.ID_ANY, "12bit RGBA", "12bit RGBA")
+        depth8  = depthMenu.Append(wx.ID_ANY, "8bit RGBA", "8bit RGBA")
 
         # Create a zoom menu
         zoomMenu = wx.Menu()
@@ -600,7 +616,7 @@ class MainWindow(wx.Frame):
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
-        menuBar.Append(imageMenu, "Image")
+        menuBar.Append(depthMenu, "Depth")
         menuBar.Append(zoomMenu, "Zoom")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
@@ -621,7 +637,9 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.Zoom(8), z800)
         self.Bind(wx.EVT_MENU, self.Zoom(9), z900)
         self.Bind(wx.EVT_MENU, self.Zoom(10), z1000)
-        self.Bind(wx.EVT_MENU, self.Convert16, convert)
+        self.Bind(wx.EVT_MENU, self.LowerToBitDepth(16), depth16)
+        self.Bind(wx.EVT_MENU, self.LowerToBitDepth(12), depth12)
+        self.Bind(wx.EVT_MENU, self.LowerToBitDepth(8), depth8)
 
         # Use some sizers to see layout options
         self.drawWindow = DrawWindow(self)
@@ -712,9 +730,9 @@ class MainWindow(wx.Frame):
         """ Set the zoom to the amount clicked on """
         return lambda e: self.drawWindow.drawControl.SetZoom(n)
 
-    def Convert16(self, e):
-        """ Menu Item handler to convert the image to 16bit RGBA """
-        self.drawWindow.drawControl.Convert16()
+    def LowerToBitDepth(self, n):
+        """ returns menu item handler to call lowerToBitDepth of given value"""
+        return lambda e: self.drawWindow.drawControl.lowerToBitDepth(n)
 
 
 def main():
