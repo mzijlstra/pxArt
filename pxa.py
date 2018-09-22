@@ -1,7 +1,5 @@
 import png
 from array import array
-import wxversion
-wxversion.select('3.0')
 import wx
 import os
 
@@ -340,7 +338,7 @@ class DrawControl(wx.Control):
 
         self.parent = parent
         self.imageSize = imageSize
-        self.image = wx.ImageFromBitmap(wx.EmptyBitmapRGBA(
+        self.image = wx.Bitmap.ConvertToImage(wx.Bitmap.FromRGBA(
             imageSize[0], imageSize[1], 255,255,255,255))
         self.color = color
         self.scale = sc = 1
@@ -419,18 +417,20 @@ class DrawControl(wx.Control):
         (iw, ih) = self.imageSize
         sc = self.scale
         dc = wx.PaintDC(self)
-        dc.DrawBitmap(wx.BitmapFromImage(self.image.Scale(iw * sc, ih * sc )), 
+        dc.DrawBitmap(wx.Bitmap(self.image.Scale(iw * sc, ih * sc )),
                 0, 0)
 
-    def _setPixel(self, x, y, (r, g, b, a)):
+    def _setPixel(self, x, y, color):
         """ Helper function to change a single pixel in the image """
+        (r,g,b,a) = color
         sc = self.scale
         nx = x / sc
         ny = y / sc
         self.image.SetRGB(nx, ny, r, g, b)
         self.image.SetAlpha(nx, ny, a)
 
-    def _drawLine(self, (r,g,b,a), x0, y0, x1, y1):
+    def _drawLine(self, color, x0, y0, x1, y1):
+        (r,g,b,a) = color
         sc = self.scale
         x0 = int(x0/sc)
         y0 = int(y0/sc)
@@ -444,10 +444,10 @@ class DrawControl(wx.Control):
             return
 
         if abs(x0 - x1) > abs(y0 - y1):
-            dy = abs(float(y1 - y0) / (x1 - x0))
+            dy = abs(float(y1 - y0) // (x1 - x0))
             if y1 < y0:
                 dy = -dy
-            dx = (x1 - x0) / abs(x1 - x0)
+            dx = (x1 - x0) // abs(x1 - x0)
             y = y0 
             for x in range(x0, x1 + dx, dx):
                 if not(x < 0 or x >= w or y < 0 or y >= h):
@@ -458,7 +458,7 @@ class DrawControl(wx.Control):
             dx = abs(float(x1 -  x0) / (y1 - y0))
             if x1 < x0:
                 dx = -dx
-            dy = (y1 - y0) / abs(y1 - y0)
+            dy = (y1 - y0) // abs(y1 - y0)
             x = x0
             for y in range(y0, y1 + dy, dy):
                 if not(x < 0 or x >= w or y < 0 or y >= h):
