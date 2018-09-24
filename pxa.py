@@ -54,7 +54,7 @@ class AlphaControl(ColorControl):
     """ The alpha control is a color control, but then for alpha values """
     def __init__(self, parent, cname, color=(0,0,0), id=wx.ID_ANY, 
             pos=wx.DefaultPosition, size=(20,20), style=wx.NO_BORDER, 
-            validator=wx.DefaultValidator, name="ColorControl"):
+            validator=wx.DefaultValidator, name="AlphaControl"):
         """ Constructor for the alpha control """
 
         ColorControl.__init__(self, parent, cname, color, id, pos, size, style, 
@@ -94,9 +94,8 @@ class AlphaControl(ColorControl):
 
 
 class ColorPicker(wx.Window):
-    """ This is the combination of 16 red, green, blue, alpha ColorControls 
-        and the ColorDisplay """ 
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
+    """ This is the combination of red, green, blue, alpha ColorControls"""
+    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
             size=(80,320), style=wx.NO_BORDER, name="ColorPicker"):
         """ Contructor for the ColorPicker """
 
@@ -114,26 +113,25 @@ class ColorPicker(wx.Window):
         greenSizer = wx.BoxSizer(wx.VERTICAL)
         blueSizer = wx.BoxSizer(wx.VERTICAL)
         alphaSizer = wx.BoxSizer(wx.VERTICAL)
-        for i in range(0, 8):
-            val = 255 - i * 32
-            if val < 0:
-                val = 0
-            self.reds.append(ColorControl(
-                self, 'red', (val, 0, 0, 255)))
-            self.greens.append(ColorControl(
-                self, 'green', (0, val, 0, 255)))
-            self.blues.append(ColorControl(
-                self, 'blue', (0, 0, val, 255)))
-            self.alphas.append(AlphaControl(
-                self, 'alpha', (0, 0, 0, val)))
+        for i in range(0, 4):
+            val = 255 - i * 85
+            self.reds.append(ColorControl(self, 'red', (val, 0, 0, 255)))
+            self.greens.append(ColorControl(self, 'green', (0, val, 0, 255)))
+            self.blues.append(ColorControl(self, 'blue', (0, 0, val, 255)))
             redSizer.Add(self.reds[i], 1, wx.SHAPED)
             greenSizer.Add(self.greens[i], 1, wx.SHAPED)
             blueSizer.Add(self.blues[i], 1, wx.SHAPED)
+
+        for i in range(0, 4):
+            val = 255 - i * 64
+            if val < 0:
+                val = 0
+            self.alphas.append(AlphaControl(self, 'alpha', (0, 0, 0, val)))
             alphaSizer.Add(self.alphas[i], 1, wx.SHAPED)
 
-        self.reds[7].selected = True
-        self.greens[7].selected = True
-        self.blues[7].selected = True
+        self.reds[3].selected = True
+        self.greens[3].selected = True
+        self.blues[3].selected = True
         self.alphas[0].selected = True
 
         colors = wx.BoxSizer(wx.HORIZONTAL)
@@ -182,10 +180,10 @@ class ColorPicker(wx.Window):
         self.ClearSelection("green")
         self.ClearSelection("blue")
         self.ClearSelection("alpha")
-        self.reds[7 - (color[0] >> 5)].selected = True
-        self.greens[7 - (color[1] >> 5)].selected = True
-        self.blues[7 - (color[2] >> 5)].selected = True
-        self.alphas[7 - (color[3] >> 5)].selected = True
+        self.reds[3 - (color[0] >> 6)].selected = True
+        self.greens[3 - (color[1] >> 6)].selected = True
+        self.blues[3 - (color[2] >> 6)].selected = True
+        self.alphas[3 - (color[3] >> 6)].selected = True
         self.Refresh()
 
 
@@ -193,7 +191,7 @@ class ColorDisplay(wx.Window):
     """ The color display shows a selected color (combination of selected
         red, green, blue, and alpha values). """
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
-            size=(50,40), style=wx.NO_BORDER, name="ColorPicker", 
+            size=(50,40), style=wx.NO_BORDER, name="ColorDisplay",
             color=None):
         """ Constructor for the ColorDisplay """
         wx.Window.__init__(self, parent, id, pos, size, style, name)
@@ -602,16 +600,16 @@ class MainWindow(wx.Frame):
 
         # Create a zoom menu
         zoomMenu = wx.Menu()
-        z100 = zoomMenu.Append(wx.ID_ANY, "100%", "Zoom 100%")
-        z200 = zoomMenu.Append(wx.ID_ANY, "200%", "Zoom 200%")
-        z300 = zoomMenu.Append(wx.ID_ANY, "300%", "Zoom 300%")
-        z400 = zoomMenu.Append(wx.ID_ANY, "400%", "Zoom 400%")
-        z500 = zoomMenu.Append(wx.ID_ANY, "500%", "Zoom 500%")
-        z600 = zoomMenu.Append(wx.ID_ANY, "600%", "Zoom 600%")
-        z700 = zoomMenu.Append(wx.ID_ANY, "700%", "Zoom 700%")
-        z800 = zoomMenu.Append(wx.ID_ANY, "800%", "Zoom 800%")
-        z900 = zoomMenu.Append(wx.ID_ANY, "900%", "Zoom 900%")
-        z1000 = zoomMenu.Append(wx.ID_ANY, "1000%", "Zoom 1000%")
+        z100 = zoomMenu.Append(wx.ID_ANY, "1:1", "Zoom 100%")
+        z200 = zoomMenu.Append(wx.ID_ANY, "1:2", "Zoom 200%")
+        z300 = zoomMenu.Append(wx.ID_ANY, "1:3", "Zoom 300%")
+        z400 = zoomMenu.Append(wx.ID_ANY, "1:4", "Zoom 400%")
+        z500 = zoomMenu.Append(wx.ID_ANY, "1:5", "Zoom 500%")
+        z600 = zoomMenu.Append(wx.ID_ANY, "1:6", "Zoom 600%")
+        z700 = zoomMenu.Append(wx.ID_ANY, "1:7", "Zoom 700%")
+        z800 = zoomMenu.Append(wx.ID_ANY, "1:8", "Zoom 800%")
+        z900 = zoomMenu.Append(wx.ID_ANY, "1:9", "Zoom 900%")
+        z1000 = zoomMenu.Append(wx.ID_ANY, "1:10", "Zoom 1000%")
 
         # Creating the menubar.
         menuBar = wx.MenuBar()
@@ -668,7 +666,7 @@ class MainWindow(wx.Frame):
     def OnOpen(self, e):
         """ Open an image file and display it """
         dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", 
-                "*.*", wx.OPEN)
+                "*.*", wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
             dirname = dlg.GetDirectory()
