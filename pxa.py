@@ -418,51 +418,74 @@ class DrawControl(wx.Control):
         dc.DrawBitmap(wx.Bitmap(self.image.Scale(iw * sc, ih * sc )),
                 0, 0)
 
+    def SetPixel(self, x, y, color):
+        sc = self.scale
+        x = x // sc
+        y = y // sc
+        self._setPixel(x, y, color)
+
+
     def _setPixel(self, x, y, color):
         """ Helper function to change a single pixel in the image """
-        (r,g,b,a) = color
-        sc = self.scale
-        nx = x / sc
-        ny = y / sc
-        self.image.SetRGB(nx, ny, r, g, b)
-        self.image.SetAlpha(nx, ny, a)
-
-    def _drawLine(self, color, x0, y0, x1, y1):
-        (r,g,b,a) = color
-        sc = self.scale
-        x0 = int(x0/sc)
-        y0 = int(y0/sc)
-        x1 = int(x1/sc)
-        y1 = int(y1/sc)
+        (r, g, b, a) = color
         (w, h) = self.imageSize
+        if w > x >= 0 and h > y >= 0:
+            self.image.SetRGB(x, y, r, g, b)
+            self.image.SetAlpha(x, y, a)
 
-        if x0 == x1 and y0 == y1 and x0 >= 0 and x0 < w and y0 >= 0 and y0 < h:
-            self.image.SetRGB(x0, y0, r, g, b)
-            self.image.SetAlpha(x0, y0, a)
-            return
+    # Bresenham's line drawing algorithm (as found on wikipidia)
+    def PlotLine(self, color, x0, y0, x1, y1):
+        sc = self.scale
+        x0 = x0//sc
+        y0 = y0//sc
+        x1 = x1//sc
+        y1 = y1//sc
 
-        if abs(x0 - x1) > abs(y0 - y1):
-            dy = abs(float(y1 - y0) // (x1 - x0))
-            if y1 < y0:
-                dy = -dy
-            dx = (x1 - x0) // abs(x1 - x0)
-            y = y0 
-            for x in range(x0, x1 + dx, dx):
-                if not(x < 0 or x >= w or y < 0 or y >= h):
-                    self.image.SetRGB(x, y, r, g, b)
-                    self.image.SetAlpha(x, y, a)
-                y += dy
+        if abs(y1 - y0) < abs(x1 - x0):
+            if x0 > x1:
+                self._plotLineLow(color, x1, y1, x0, y0)
+            else:
+                self._plotLineLow(color, x0, y0, x1, y1)
         else:
-            dx = abs(float(x1 -  x0) / (y1 - y0))
-            if x1 < x0:
-                dx = -dx
-            dy = (y1 - y0) // abs(y1 - y0)
-            x = x0
-            for y in range(y0, y1 + dy, dy):
-                if not(x < 0 or x >= w or y < 0 or y >= h):
-                    self.image.SetRGB(x, y, r, g, b)
-                    self.image.SetAlpha(x, y, a)
-                x += dx
+            if y0 > y1:
+                self._plotLineHigh(color, x1, y1, x0, y0)
+            else:
+                self._plotLineHigh(color, x0, y0, x1, y1)
+
+    def _plotLineLow(self, color, x0, y0, x1, y1):
+        dx = x1 - x0
+        dy = y1 - y0
+        yi = 1
+        if dy < 0:
+            yi = -1
+            dy = -dy
+        D = 2*dy - dx
+        y = y0
+
+        for x in range(x0, x1 + 1):
+            self._setPixel(x, y, color)
+            if D > 0:
+                y = y + yi
+                D = D - 2*dx
+            D = D + 2*dy
+
+    def _plotLineHigh(self, color, x0, y0, x1, y1):
+        dx = x1 - x0
+        dy = y1 - y0
+        xi = 1
+        if dx < 0:
+            xi = -1
+            dx = -dx
+        D = 2*dx - dy
+        x = x0
+
+        for y in range(y0, y1 + 1):
+            self._setPixel(x, y, color)
+            if D > 0:
+                x = x + xi
+                D = D - 2*dy
+            D = D + 2*dx
+
 
     def Click(self, btn):
         """ Creates an onclick handler """
@@ -473,7 +496,7 @@ class DrawControl(wx.Control):
         x = event.GetX()
         y = event.GetY()
         color = getattr(self.parent.parent.colorPresetPanel, btn).color
-        self._setPixel(x, y, color)
+        self.SetPixel(x, y, color)
         getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
         self.prev = {"x":x, "y":y}
         self.Refresh(False)
@@ -493,7 +516,7 @@ class DrawControl(wx.Control):
             getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
             x = event.GetX()
             y = event.GetY()
-            self._drawLine(color, self.prev["x"], self.prev["y"], x, y)
+            self.PlotLine(color, self.prev["x"], self.prev["y"], x, y)
             self.prev = {"x":x, "y":y}
             self.Refresh(False)
 
@@ -563,7 +586,7 @@ class NewImageDialog(wx.Dialog):
     def OnOk(self, e):
         w = int(self.width.GetValue())
         h = int(self.height.GetValue())
-        img = wx.ImageFromBitmap(wx.EmptyBitmapRGBA(w, h, 255,255,255,255))
+        img = wx.Bitmap.ConvertToImage(wx.Bitmap.FromRGBA(w, h, 255,255,255,255))
         self.parent.drawWindow.drawControl.SetImage(img)
         self.Destroy()
 
