@@ -323,6 +323,33 @@ class ColorPresetPanel(wx.Panel):
             setattr(p, attr, False)
             p.Refresh()
 
+class PixelMod:
+    def __init__(self, x, y, oldColor, newColor):
+        self.x = x
+        self.y = y
+        self.oldColor = oldColor
+        self.newColor = newColor
+
+    def __str__(self):
+        return str(self.x) + " " + str(self.y) + " " + str(self.oldColor) \
+            + " " + str(self.newColor) 
+
+class DrawCommand:
+    def __init__(self, target):
+        self.pixelMods = []
+        self.target = target
+
+    def AddPixelMod(self, mod):
+        self.pixelMods.append(mod)
+
+    def Invoke(self):
+        for m in self.pixelMods:
+            self.target._setPixel(m.x,m.y,m.newColor)
+
+    def Revoke(self):
+        for m in self.pixelMods:
+            self.target._setPixel(m.x,m.y,m.oldColor)
+
 
 class DrawControl(wx.Control):
     """ The DrawControl class contains the image which we are maniplulating  """
@@ -435,8 +462,14 @@ class DrawControl(wx.Control):
         sc = self.scale
         x = x // sc
         y = y // sc
-        self._setPixel(x, y, color)
-
+        r = self.image.GetRed(x,y)
+        g = self.image.GetGreen(x,y)
+        b = self.image.GetBlue(x,y)
+        a = self.image.GetAlpha(x,y)
+        command = DrawCommand(self)
+        command.AddPixelMod(PixelMod(x, y, (r,g,b,a), color))
+        self.parent.parent.AddCommand(command)
+        command.Invoke()
 
     def _setPixel(self, x, y, color):
         """ Helper function to change a single pixel in the image """
@@ -445,6 +478,7 @@ class DrawControl(wx.Control):
         if w > x >= 0 and h > y >= 0:
             self.image.SetRGB(x, y, r, g, b)
             self.image.SetAlpha(x, y, a)
+        self.Refresh()
 
     # Bresenham's line drawing algorithm (as found on wikipidia)
     def PlotLine(self, color, x0, y0, x1, y1):
@@ -603,13 +637,16 @@ class NewImageDialog(wx.Dialog):
         self.parent.drawWindow.drawControl.SetImage(img)
         self.Destroy()
 
+
+
 class MainWindow(wx.Frame):
     """ The main window for the Pixel Art Editor """
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title)
         self.filename = ''
         self.dirname = ''
-
+        self.commands = []
+        self.cIndex = 0
 
         # create our custom color picker control
         self.colorPicker = ColorPicker(self)
@@ -626,6 +663,12 @@ class MainWindow(wx.Frame):
         menuAbout= filemenu.Append(wx.ID_ABOUT, "&About",
                 " Information about this program")
         menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
+
+        editMenu = wx.Menu()
+        self.menuUndo = editMenu.Append(wx.ID_UNDO, "&Undo", "Undo an operation")
+        self.menuRedo = editMenu.Append(wx.ID_REDO, "&Redo", "Redo an operation")
+        self.menuUndo.Enable(False)
+        self.menuRedo.Enable(False)
 
         # Create a color depth menu
         depthMenu = wx.Menu()
@@ -650,6 +693,7 @@ class MainWindow(wx.Frame):
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
+        menuBar.Append(editMenu, "&Edit")
         menuBar.Append(depthMenu, "Depth")
         menuBar.Append(zoomMenu, "Zoom")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
@@ -661,6 +705,8 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnSaveAs, menuSaveAs)
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
+        self.Bind(wx.EVT_MENU, self.OnUndo, self.menuUndo)
+        self.Bind(wx.EVT_MENU, self.OnRedo, self.menuRedo)
         self.Bind(wx.EVT_MENU, self.Zoom(1), z100)
         self.Bind(wx.EVT_MENU, self.Zoom(2), z200)
         self.Bind(wx.EVT_MENU, self.Zoom(3), z300)
@@ -760,6 +806,32 @@ class MainWindow(wx.Frame):
     def OnExit(self, e):
         """ The onExit handler """
         self.Close(True)  # Close the frame.
+
+    def OnUndo(self, e):
+        self.cIndex -= 1
+        self.commands[self.cIndex].Revoke()
+        if (self.cIndex == 0):
+            self.menuUndo.Enable(False)
+        if self.cIndex < len(self.commands):
+            self.menuRedo.Enable(True)
+
+    def OnRedo(self, e):
+        self.commands[self.cIndex].Invoke()
+        self.cIndex += 1
+        if self.cIndex > 0:
+            self.menuUndo.Enable(True)
+        if self.cIndex >= len(self.commands):
+            self.menuRedo.Enable(False)
+
+    def AddCommand(self, command):
+        if len(self.commands) <= self.cIndex:
+            self.commands.append(command)
+            self.cIndex += 1
+        else:
+            self.commands[self.cIndex] = command
+            self.cIndex += 1
+        if (self.cIndex > 0):
+            self.menuUndo.Enable(True)
 
     def OnSize(self, event):
         (w,h) = self.GetClientSize()
