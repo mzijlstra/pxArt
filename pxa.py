@@ -188,10 +188,10 @@ class ColorPicker(wx.Window):
 
 
 class ColorDisplay(wx.Window):
-    """ The color display shows a selected color (combination of selected
+    """ The color display can store a selected color (combination of selected
         red, green, blue, and alpha values). """
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
-            size=(50,40), style=wx.NO_BORDER, name="ColorDisplay",
+            size=(30,30), style=wx.NO_BORDER, name="ColorDisplay",
             color=None):
         """ Constructor for the ColorDisplay """
         wx.Window.__init__(self, parent, id, pos, size, style, name)
@@ -232,17 +232,17 @@ class ColorDisplay(wx.Window):
         darkGreyBrush = gc.CreateBrush(wx.Brush((100,100,100,255)))
 
         gc.SetBrush(darkGreyBrush)
-        gc.DrawRectangle(5, 5, 40, 30)
+        gc.DrawRectangle(0, 0, 30, 30)
         gc.SetBrush(lightGreyBrush)
-        gc.DrawRectangle(5, 5, 10, 10)
-        gc.DrawRectangle(25, 5, 10, 10)
-        gc.DrawRectangle(15, 15, 10, 10)
-        gc.DrawRectangle(35, 15, 10, 10)
-        gc.DrawRectangle(5, 25, 10, 10)
-        gc.DrawRectangle(25, 25, 10, 10)
+        gc.DrawRectangle(0, 0, 10, 10)
+        gc.DrawRectangle(20, 0, 10, 10)
+        gc.DrawRectangle(10, 10, 10, 10)
+        gc.DrawRectangle(30, 10, 10, 10)
+        gc.DrawRectangle(0, 20, 10, 10)
+        gc.DrawRectangle(20, 20, 10, 10)
 
         gc.SetBrush(gc.CreateBrush(wx.Brush(self.color)))
-        gc.DrawRectangle(5, 5, 40, 30)
+        gc.DrawRectangle(0, 0, 30, 30)
 
         if self.selected or self.left or self.right or self.middle:
             sel = 0
@@ -258,22 +258,22 @@ class ColorDisplay(wx.Window):
         if self.selected:
             gc.SetBrush(noneBrush)
             gc.SetPen(selectPen)
-            gc.DrawRectangle(5,5,40,30)
+            gc.DrawRectangle(0,0,30,30)
 
         if self.left:
             gc.SetBrush(selectBrush)
             gc.SetPen(selectPen)
-            gc.DrawEllipse(10,22,8,8)
+            gc.DrawEllipse(5,5,8,8)
             
         if self.right:
             gc.SetBrush(selectBrush)
             gc.SetPen(selectPen)
-            gc.DrawRectangle(32,22,8,8)
+            gc.DrawRectangle(15,5,8,8)
             
         if self.middle:
             gc.SetBrush(selectBrush)
             gc.SetPen(selectPen)
-            gc.DrawLines([[20,19], [25,10], [30,19]])
+            gc.DrawLines([[10,23], [15,15], [20,23]])
             
 
 
@@ -291,14 +291,14 @@ class ColorPresetPanel(wx.Panel):
         presets.append(ColorDisplay(self, color=(0,0,0,255)))
         presets.append(ColorDisplay(self, color=(255,255,255,255)))
         presets.append(ColorDisplay(self, color=(0,0,0,0)))
-        # Colors of the rainbow ROY G BIV
+
         presets.append(ColorDisplay(self, color=(255,0,0,255)))
-        presets.append(ColorDisplay(self, color=(255,144,32,255)))
+        presets.append(ColorDisplay(self, color=(0,255,0,255)))
+        presets.append(ColorDisplay(self, color=(0,0,255,255)))
+        presets.append(ColorDisplay(self, color=(0,255,255,255)))
+        presets.append(ColorDisplay(self, color=(255,0,255,255)))
         presets.append(ColorDisplay(self, color=(255,255,0,255)))
-        presets.append(ColorDisplay(self, color=(80,176,32,255)))
-        presets.append(ColorDisplay(self, color=(0,0,160,255)))
-        presets.append(ColorDisplay(self, color=(160,0,128,255)))
-        presets.append(ColorDisplay(self, color=(96,0,128,255)))
+        presets.append(ColorDisplay(self, color=(128,128,128,255)))
         self.presets = presets
 
         presetsSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -350,10 +350,6 @@ class DrawControl(wx.Control):
         self.Bind(wx.EVT_MIDDLE_DOWN, self.Click("middle"))
         self.Bind(wx.EVT_MOTION, self.OnMotion)
 
-        wsize = (imageSize[0] * self.scale, imageSize[1] * self.scale)
-        self.SetSize(wsize)
-        self.SetMinSize(wsize)
-        self.SetMaxSize(wsize)
 
     def _resize(self):
         """ Helper function used when when zooming or loading a new image """
@@ -403,6 +399,7 @@ class DrawControl(wx.Control):
         self.image = img
         size = img.GetSize()
         self.imageSize = (size.x, size.y)
+        self.lowerToBitDepth(8)
         self._resize()
 
     def SetZoom(self, n):
@@ -412,11 +409,27 @@ class DrawControl(wx.Control):
 
     def OnPaint(self, event):
         """ The onPaint handler function """
+        dc = wx.PaintDC(self)
+        gc = wx.GraphicsContext.Create(dc)
+        nonePen =  gc.CreatePen(wx.Pen(wx.Colour(0,0,0,0)))
+        lightGreyBrush = gc.CreateBrush(wx.Brush((200,200,200,255)))
+        darkGreyBrush = gc.CreateBrush(wx.Brush((100,100,100,255)))
+        gc.SetPen(nonePen)
+
+        (w, h) = self.GetClientSize()
+        for x in range(0, w, 20):
+            for y in range(0, h, 20):
+                gc.SetBrush(lightGreyBrush)
+                gc.DrawRectangle(x,y,10,10)
+                gc.DrawRectangle(x+10,y+10,10,10)
+                gc.SetBrush(darkGreyBrush)
+                gc.DrawRectangle(x+10,y,10,10)
+                gc.DrawRectangle(x,y+10,10,10)
+
         (iw, ih) = self.imageSize
         sc = self.scale
         dc = wx.PaintDC(self)
-        dc.DrawBitmap(wx.Bitmap(self.image.Scale(iw * sc, ih * sc )),
-                0, 0)
+        dc.DrawBitmap(wx.Bitmap(self.image.Scale(iw * sc, ih * sc )), 0, 0)
 
     def SetPixel(self, x, y, color):
         sc = self.scale
@@ -524,7 +537,7 @@ class DrawControl(wx.Control):
 class DrawWindow(wx.ScrolledWindow):
     """ The DrawControl plus horizontal and vertical scrolbars when needed """
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
-            size=(800,600), style=wx.BORDER_DEFAULT, name="DrawWindow"):
+            size=wx.DefaultSize, style=wx.BORDER_DEFAULT, name="DrawWindow"):
         """ The constructor for the DrawWindow """
         wx.ScrolledWindow.__init__(self, parent, id, pos, size, style, name)
         self.parent = parent
@@ -533,11 +546,11 @@ class DrawWindow(wx.ScrolledWindow):
         sizerh = wx.BoxSizer(wx.HORIZONTAL)
         sizerv = wx.BoxSizer(wx.VERTICAL)
         sizerh.Add(sizerv, 1, wx.ALIGN_CENTER_VERTICAL)
-        sizerv.Add(self.drawControl, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        
+        sizerv.Add(self.drawControl, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.EXPAND)
         self.SetSizer(sizerh)
         self.SetAutoLayout(1)
         sizerh.Fit(self)
+        self.SetMinSize((800,600))
 
 class NewImageDialog(wx.Dialog):
     """ Dialog window for creating a new image """
@@ -678,7 +691,8 @@ class MainWindow(wx.Frame):
         self.Show()
 
         # set starting zoom level
-        self.drawWindow.drawControl.SetZoom(8)
+        self.drawWindow.drawControl.SetZoom(5)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
 
     def OnNew(self, e):
 # TODO create a custom dialog, as shown at:http://zetcode.com/wxpython/dialogs/
@@ -746,6 +760,10 @@ class MainWindow(wx.Frame):
     def OnExit(self, e):
         """ The onExit handler """
         self.Close(True)  # Close the frame.
+
+    def OnSize(self, event):
+        (w,h) = self.GetClientSize()
+        self.drawWindow.SetSize((w - 80, h - 40)) #FIXME magic numbers (from other controls)
 
     def Zoom(self, n):
         """ Set the zoom to the amount clicked on """
