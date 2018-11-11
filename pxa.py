@@ -336,18 +336,20 @@ class PixelMod:
 
 class DrawCommand:
     def __init__(self, target):
-        self.pixelMods = []
+        self.pixelMods = {}
         self.target = target
 
     def AddPixelMod(self, mod):
-        self.pixelMods.append(mod)
+        if (mod.x,mod.y) not in self.pixelMods:
+            self.pixelMods[(mod.x,mod.y)] = mod
+
 
     def Invoke(self):
-        for m in self.pixelMods:
+        for m in self.pixelMods.values():
             self.target._setPixel(m.x,m.y,m.newColor)
 
     def Revoke(self):
-        for m in self.pixelMods:
+        for m in self.pixelMods.values():
             self.target._setPixel(m.x,m.y,m.oldColor)
 
 
@@ -466,10 +468,9 @@ class DrawControl(wx.Control):
         g = self.image.GetGreen(x,y)
         b = self.image.GetBlue(x,y)
         a = self.image.GetAlpha(x,y)
-        command = DrawCommand(self)
-        command.AddPixelMod(PixelMod(x, y, (r,g,b,a), color))
-        self.parent.parent.AddCommand(command)
-        command.Invoke()
+        self.command.AddPixelMod(PixelMod(x, y, (r,g,b,a), color))
+        self.parent.parent.AddCommand(self.command)
+        self.command.Invoke()
 
     def _setPixel(self, x, y, color):
         """ Helper function to change a single pixel in the image """
@@ -478,7 +479,7 @@ class DrawControl(wx.Control):
         if w > x >= 0 and h > y >= 0:
             self.image.SetRGB(x, y, r, g, b)
             self.image.SetAlpha(x, y, a)
-        self.Refresh()
+        self.Refresh(False)
 
     # Bresenham's line drawing algorithm (as found on wikipidia)
     def PlotLine(self, color, x0, y0, x1, y1):
@@ -498,6 +499,8 @@ class DrawControl(wx.Control):
                 self._plotLineHigh(color, x1, y1, x0, y0)
             else:
                 self._plotLineHigh(color, x0, y0, x1, y1)
+        # redraws the entire line so far (opportunity for optimization)
+        self.command.Invoke()
 
     def _plotLineLow(self, color, x0, y0, x1, y1):
         dx = x1 - x0
@@ -510,7 +513,11 @@ class DrawControl(wx.Control):
         y = y0
 
         for x in range(x0, x1 + 1):
-            self._setPixel(x, y, color)
+            r = self.image.GetRed(x,y)
+            g = self.image.GetGreen(x,y)
+            b = self.image.GetBlue(x,y)
+            a = self.image.GetAlpha(x,y)
+            self.command.AddPixelMod(PixelMod(x, y, (r,g,b,a), color))
             if D > 0:
                 y = y + yi
                 D = D - 2*dx
@@ -527,7 +534,11 @@ class DrawControl(wx.Control):
         x = x0
 
         for y in range(y0, y1 + 1):
-            self._setPixel(x, y, color)
+            r = self.image.GetRed(x,y)
+            g = self.image.GetGreen(x,y)
+            b = self.image.GetBlue(x,y)
+            a = self.image.GetAlpha(x,y)
+            self.command.AddPixelMod(PixelMod(x, y, (r,g,b,a), color))
             if D > 0:
                 x = x + xi
                 D = D - 2*dy
@@ -543,10 +554,10 @@ class DrawControl(wx.Control):
         x = event.GetX()
         y = event.GetY()
         color = getattr(self.parent.parent.colorPresetPanel, btn).color
+        self.command = DrawCommand(self)
         self.SetPixel(x, y, color)
         getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
         self.prev = {"x":x, "y":y}
-        self.Refresh(False)
 
     def OnMotion(self, event):
         """ The onMotion handler function """
