@@ -3,6 +3,30 @@ from array import array
 import wx
 import os
 
+class ActiveColors(wx.Control):
+    """ ActiveColors shows what color is connected to left and right button"""
+    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
+            size=(80, 40), style=wx.NO_BORDER, validator=wx.DefaultValidator,
+            name="ActiveColors"):
+        wx.Control.__init__(self, parent, id, pos, size, style, validator,name)
+        self.parent = parent
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.fore = (0,0,0,255)
+        self.back = (255,255,255,255)
+
+    def OnPaint(self, event):
+        dc = wx.PaintDC(self)
+        gc = wx.GraphicsContext.Create(dc)
+        pen = gc.CreatePen(wx.Pen(wx.Colour(0, 0, 0, 255)))
+        fore = gc.CreateBrush(wx.Brush(self.fore))
+        back = gc.CreateBrush(wx.Brush(self.back))
+
+        gc.SetPen(pen)
+        gc.SetBrush(back)
+        gc.DrawRectangle(30,10,40,30)
+        gc.SetBrush(fore)
+        gc.DrawRectangle(10,0,40,30)
+
 class ColorControl(wx.Control):
     """ Color control class represents a clickable square where each instance 
         represents one of 16 shades of the given color """
@@ -79,7 +103,10 @@ class AlphaControl(ColorControl):
 
         #c = (255,255,255,255) # FIXME refer to a colorDisplay
         c = self.parent.parent.colorPresetPanel.selected.color
-        gc.SetBrush(wx.Brush((c[0], c[1], c[2], self.color[3])))
+        color = (c[0], c[1], c[2], (self.color[3] | 63))
+        if c[0] + c[1] + c[2] + self.color[3] == 0:
+            color = (0,0,0,0)
+        gc.SetBrush(wx.Brush(color))
         gc.DrawRectangle(0,0,20,20)
 
         if self.selected: 
@@ -118,15 +145,10 @@ class ColorPicker(wx.Window):
             self.reds.append(ColorControl(self, 'red', (val, 0, 0, 255)))
             self.greens.append(ColorControl(self, 'green', (0, val, 0, 255)))
             self.blues.append(ColorControl(self, 'blue', (0, 0, val, 255)))
+            self.alphas.append(AlphaControl(self, 'alpha', (0, 0, 0, val)))
             redSizer.Add(self.reds[i], 1, wx.SHAPED)
             greenSizer.Add(self.greens[i], 1, wx.SHAPED)
             blueSizer.Add(self.blues[i], 1, wx.SHAPED)
-
-        for i in range(0, 4):
-            val = 255 - i * 64
-            if val < 0:
-                val = 0
-            self.alphas.append(AlphaControl(self, 'alpha', (0, 0, 0, val)))
             alphaSizer.Add(self.alphas[i], 1, wx.SHAPED)
 
         self.reds[3].selected = True
@@ -298,7 +320,7 @@ class ColorPresetPanel(wx.Panel):
         presets.append(ColorDisplay(self, color=(0,255,255,255)))
         presets.append(ColorDisplay(self, color=(255,0,255,255)))
         presets.append(ColorDisplay(self, color=(255,255,0,255)))
-        presets.append(ColorDisplay(self, color=(128,128,128,255)))
+        presets.append(ColorDisplay(self, color=(170,170,170,255)))
         self.presets = presets
 
         presetsSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -661,9 +683,11 @@ class MainWindow(wx.Frame):
         self.commands = []
         self.cIndex = 0
 
-        # create our custom color picker control
+        # create our components
+        self.activeColors = ActiveColors(self)
         self.colorPicker = ColorPicker(self)
         self.colorPresetPanel = ColorPresetPanel(self)
+        self.drawWindow = DrawWindow(self)
 
         #self.CreateStatusBar() # A Statusbar in the bottom of the window
 
@@ -735,12 +759,17 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.LowerToBitDepth(8), depth8)
 
         # Use some sizers to see layout options
-        self.drawWindow = DrawWindow(self)
-        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer.Add(self.colorPicker, 0, wx.SHAPED)
+        vert1 = wx.BoxSizer(wx.VERTICAL)
+        vert1.Add(self.activeColors, 0, wx.ALIGN_LEFT)
+        vert1.AddSpacer(10)
+        vert1.Add(self.colorPicker, 0, wx.ALIGN_LEFT)
+
         sz = wx.BoxSizer(wx.VERTICAL)
         sz.Add(self.colorPresetPanel, 0, wx.ALIGN_LEFT)
         sz.Add(self.drawWindow, 1, wx.EXPAND)
+
+        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer.Add(vert1, 0)
         self.sizer.Add(sz,1)
 
         #Layout sizers
