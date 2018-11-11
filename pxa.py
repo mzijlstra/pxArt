@@ -324,6 +324,7 @@ class ColorPresetPanel(wx.Panel):
             p.Refresh()
 
 class PixelMod:
+    """ Pixel modification class used by DrawCommand class """
     def __init__(self, x, y, oldColor, newColor):
         self.x = x
         self.y = y
@@ -335,6 +336,7 @@ class PixelMod:
             + " " + str(self.newColor) 
 
 class DrawCommand:
+    """ DrawCommand class as part of the command pattern for undo/redo """
     def __init__(self, target):
         self.pixelMods = {}
         self.target = target
