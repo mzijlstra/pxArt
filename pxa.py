@@ -244,46 +244,33 @@ class ColorPicker(wx.Window):
         self.Refresh()
 
 
-class ColorDisplay(wx.Window):
-    """ The color display can store a selected color (combination of selected
+class PaletteItem(wx.Control):
+    """ PaletteItem stores a specific color (combination of selected
         red, green, blue, and alpha values). """
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
-            size=(30,30), style=wx.NO_BORDER, name="ColorDisplay",
-            color=None):
-        """ Constructor for the ColorDisplay """
-        wx.Window.__init__(self, parent, id, pos, size, style, name)
+    def __init__(self, parent, color=[0,0,0,0], id=wx.ID_ANY, 
+            pos=wx.DefaultPosition, size=(10,10), style=wx.NO_BORDER, 
+            validator=wx.DefaultValidator, name="PaletteItem"):
+
+        wx.Control.__init__(self, parent, id, pos, size, style, validator,name)
         self.parent = parent
         self.SetInitialSize(size)
-        if color == None:
-            self.color = [255,255,255,255]
-        else:
-            self.color = [color[0], color[1], color[2], color[3]]
-        self.selected = False
-        self.left = False
-        self.right = False
-        self.middle = False
+        self.color = color
+        self.foreground = False
+        self.background = False
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.Select("left"))
-        self.Bind(wx.EVT_RIGHT_DOWN, self.Select("right"))
-        self.Bind(wx.EVT_MIDDLE_DOWN, self.Select("middle"))
+        self.Bind(wx.EVT_LEFT_DOWN, self.Select("foreground"))
+        self.Bind(wx.EVT_RIGHT_DOWN, self.Select("background"))
 
-    def Select(self, btn):
-        """ Set which mouse button selected this """
-        return lambda e: self.OnClick(btn)
+    def Select(self, ground):
+        """ Set foreground/background based on which mouse button pressed """
+        return lambda e: self.OnClick(ground)
 
-    def OnClick(self, btn):
-        self.parent.ClearAttr("selected")
-        self.parent.ClearAttr(btn)
-        self.selected = True
-        setattr(self, btn, True)
-        self.parent.selected = self
-        setattr(self.parent, btn, self)
-        ground = "foreground"
-        if btn == "right":
-            ground = "background"
+    def OnClick(self, ground):
+        self.parent.ClearAttr(ground)
+        setattr(self, ground, True)
+        setattr(self.parent, ground, self)
         getattr(self.parent.parent, ground).UpdateColor(self.color)
-        #self.parent.parent.colorPicker.UpdateColor(self.color)
 
     def OnPaint(self, event):
         """ Draws its color """
@@ -293,95 +280,91 @@ class ColorDisplay(wx.Window):
         darkGreyBrush = gc.CreateBrush(wx.Brush((100,100,100,255)))
 
         gc.SetBrush(darkGreyBrush)
-        gc.DrawRectangle(0, 0, 30, 30)
-        gc.SetBrush(lightGreyBrush)
         gc.DrawRectangle(0, 0, 10, 10)
-        gc.DrawRectangle(20, 0, 10, 10)
-        gc.DrawRectangle(10, 10, 10, 10)
-        gc.DrawRectangle(30, 10, 10, 10)
-        gc.DrawRectangle(0, 20, 10, 10)
-        gc.DrawRectangle(20, 20, 10, 10)
+        gc.SetBrush(lightGreyBrush)
+        gc.DrawRectangle(0, 0, 5, 5)
+        gc.DrawRectangle(5, 5, 5, 5)
 
         gc.SetBrush(gc.CreateBrush(wx.Brush(self.color)))
-        gc.DrawRectangle(0, 0, 30, 30)
+        gc.DrawRectangle(0, 0, 10, 10)
 
-        if self.selected or self.left or self.right or self.middle:
+        if self.foreground or self.background:
+            # create a contrasting outline color
             sel = 0
             c = self.color
             if (c[0] + c[1] + c[2]) / 3 < 128:
                 sel = 255
             selectPen =  gc.CreatePen(wx.Pen((sel, sel, sel, 255)))
-            selectBrush = gc.CreateBrush(wx.Brush((sel,sel,sel,255)))
             noneBrush = gc.CreateBrush(wx.Brush((0,0,0,0)))
-            lightGreyBrush = gc.CreateBrush(wx.Brush((200,200,200,255)))
-            darkGreyBrush = gc.CreateBrush(wx.Brush((100,100,100,255)))
-
-        if self.selected:
             gc.SetBrush(noneBrush)
             gc.SetPen(selectPen)
-            gc.DrawRectangle(0,0,30,30)
+            gc.DrawRectangle(0,0,9,9)
 
-        if self.left:
-            gc.SetBrush(selectBrush)
-            gc.SetPen(selectPen)
-            gc.DrawEllipse(5,5,8,8)
-            
-        if self.right:
-            gc.SetBrush(selectBrush)
-            gc.SetPen(selectPen)
-            gc.DrawRectangle(15,5,8,8)
-            
-        if self.middle:
-            gc.SetBrush(selectBrush)
-            gc.SetPen(selectPen)
-            gc.DrawLines([[10,23], [15,15], [20,23]])
-            
 
-class ColorPresetPanel(wx.Panel):
-    """ This class contains 10 color Displays """
+class ColorPalette(wx.Panel):
+    """ This class contains 64 PaletteItems """
 
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
             size=wx.DefaultSize, style=wx.NO_BORDER, name="ColorPresetPanel"):
         """ Contructor for the ColorPresetPanel """
         wx.Panel.__init__(self, parent, id, pos, size, style, name)
         self.parent = parent
+        self.foreground = None
+        self.background = None
 
-        presets = []
-        # Black, white, transparent
-        presets.append(ColorDisplay(self, color=(0,0,0,255)))
-        presets.append(ColorDisplay(self, color=(255,255,255,255)))
-        presets.append(ColorDisplay(self, color=(0,0,0,0)))
+        items = []
+        for r in range(0, 4):
+            for g in range(0,4):
+                for b in range(0,4):
+                    items.append(PaletteItem(self, [r*85,g*85,b*85,255]))
 
-        presets.append(ColorDisplay(self, color=(255,0,0,255)))
-        presets.append(ColorDisplay(self, color=(0,255,0,255)))
-        presets.append(ColorDisplay(self, color=(0,0,255,255)))
-        presets.append(ColorDisplay(self, color=(0,255,255,255)))
-        presets.append(ColorDisplay(self, color=(255,0,255,255)))
-        presets.append(ColorDisplay(self, color=(255,255,0,255)))
-        presets.append(ColorDisplay(self, color=(170,170,170,255)))
-        self.presets = presets
+        rows = wx.BoxSizer(wx.VERTICAL)
+        rows.Add(wx.StaticText(self, label="Palette"))
+        for y in range(0,8):
+            cols = wx.BoxSizer(wx.HORIZONTAL)
+            for x in range(0,8):
+                cols.Add(items[y * 8 + x])
+            rows.Add(cols)
 
-        presetsSizer = wx.BoxSizer(wx.HORIZONTAL)
-        for i in range(0,10):
-            presetsSizer.Add(self.presets[i], 1, wx.ALIGN_LEFT, 0)
+        self.foreground = items[0]
+        self.background = items[63]
+        items[0].foreground = True
+        items[63].background = True
 
-        self.selected = presets[0]
-        presets[0].selected = True
-        self.left = presets[0]
-        presets[0].left = True
-        self.right = presets[1]
-        presets[1].right = True
-        self.middle = presets[2]
-        presets[2].middle = True
-
-        self.SetSizer(presetsSizer)
+        self.SetSizer(rows)
         self.SetAutoLayout(1)
-        presetsSizer.Fit(self)
+        rows.Fit(self)
 
     def ClearAttr(self, attr):
-        for p in self.presets:
-            setattr(p, attr, False)
-            p.Refresh()
+        for i in self.items:
+            setattr(i, attr, False)
+            i.Refresh()
+
+        # Black, white, transparent
+#        items.append(ColorDisplay(self, []))
+#        items.append(ColorDisplay(self, color=(255,255,255,255)))
+#        items.append(ColorDisplay(self, color=(0,0,0,0)))
+#
+#        items.append(ColorDisplay(self, color=(255,0,0,255)))
+#        items.append(ColorDisplay(self, color=(0,255,0,255)))
+#        items.append(ColorDisplay(self, color=(0,0,255,255)))
+#        items.append(ColorDisplay(self, color=(0,255,255,255)))
+#        items.append(ColorDisplay(self, color=(255,0,255,255)))
+#        items.append(ColorDisplay(self, color=(255,255,0,255)))
+#        items.append(ColorDisplay(self, color=(170,170,170,255)))
+#        self.items = items
+#
+#        itemsSizer = wx.BoxSizer(wx.HORIZONTAL)
+#        for i in range(0,10):
+#            itemsSizer.Add(self.items[i], 1, wx.ALIGN_LEFT, 0)
+#
+#        self.selected = items[0]
+#        items[0].selected = True
+#        self.left = items[0]
+#        items[0].left = True
+#        self.right = items[1]
+#        items[1].right = True
+
 
 class PixelMod:
     """ Pixel modification class used by DrawCommand class """
@@ -729,6 +712,7 @@ class MainWindow(wx.Frame):
                 ground="foreground", label="Foreground")
         self.background = ColorPicker(self, color=self.activeColor.background, 
                 ground="background", label="Background")
+        self.colorPalette = ColorPalette(self)
         self.drawWindow = DrawWindow(self)
 
         #self.CreateStatusBar() # A Statusbar in the bottom of the window
@@ -805,6 +789,7 @@ class MainWindow(wx.Frame):
         vert1.Add(self.activeColor, 0, wx.ALIGN_TOP)
         vert1.Add(self.foreground, 0, wx.ALIGN_TOP)
         vert1.Add(self.background, 0, wx.ALIGN_TOP)
+        vert1.Add(self.colorPalette, 0, wx.ALIGN_TOP)
 
         sz = wx.BoxSizer(wx.VERTICAL)
         sz.Add(self.drawWindow, 1, wx.EXPAND)
