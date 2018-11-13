@@ -6,13 +6,13 @@ import os
 class ActiveColor(wx.Control):
     """ ActiveColors shows what color is connected to left and right button"""
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
-            size=(80, 40), style=wx.NO_BORDER, validator=wx.DefaultValidator,
+            size=(80, 42), style=wx.NO_BORDER, validator=wx.DefaultValidator,
             name="ActiveColor"):
         wx.Control.__init__(self, parent, id, pos, size, style, validator,name)
         self.parent = parent
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.foreground = (0,0,0,255)
-        self.background = (255,255,255,255)
+        self.foreground = [0,0,0,255]
+        self.background = [255,255,255,255]
 
     def OnPaint(self, event):
         dc = wx.PaintDC(self)
@@ -21,11 +21,38 @@ class ActiveColor(wx.Control):
         fore = gc.CreateBrush(wx.Brush(self.foreground))
         back = gc.CreateBrush(wx.Brush(self.background))
 
+        nonePen =  gc.CreatePen(wx.Pen(wx.Colour(0,0,0,0)))
+        lightGreyBrush = gc.CreateBrush(wx.Brush((200,200,200,255)))
+        darkGreyBrush = gc.CreateBrush(wx.Brush((100,100,100,255)))
+
+        gc.SetBrush(darkGreyBrush)
+        gc.DrawRectangle(30, 10, 40, 30)
+        gc.DrawRectangle(10,  0, 40, 30)
+        gc.SetBrush(lightGreyBrush)
+        gc.DrawRectangle(10, 0, 10, 10)
+        gc.DrawRectangle(30, 0, 10, 10)
+        gc.DrawRectangle(20, 10, 10, 10)
+        gc.DrawRectangle(40, 10, 10, 10)
+        gc.DrawRectangle(60, 10, 10, 10)
+        gc.DrawRectangle(10, 20, 10, 10)
+        gc.DrawRectangle(30, 20, 10, 10)
+        gc.DrawRectangle(50, 20, 10, 10)
+        gc.DrawRectangle(70, 20, 10, 10)
+        gc.DrawRectangle(40, 30, 10, 10)
+        gc.DrawRectangle(60, 30, 10, 10)
+
         gc.SetPen(pen)
         gc.SetBrush(back)
         gc.DrawRectangle(30,10,40,30)
         gc.SetBrush(fore)
         gc.DrawRectangle(10,0,40,30)
+
+    def CheckTransparant(self, ground):
+        g = getattr(self, ground)
+        if g[0] + g[1] + g[2] == 0 and g[3] >= 63:
+            g[3] = 0
+        else:
+            g[3] = g[3] | 63
 
 class ColorControl(wx.Control):
     """ Color control class represents a clickable square where each instance 
@@ -106,7 +133,7 @@ class AlphaControl(ColorControl):
 
         c = getattr(self.parent.parent.activeColor, self.ground)
         color = (c[0], c[1], c[2], (self.color[3] | 63))
-        if c[0] + c[1] + c[2] + self.color[3] == 0:
+        if c[0] + c[1] + c[2] == 0 and self.color[3] == 63:
             color = (0,0,0,0)
         gc.SetBrush(wx.Brush(color))
         gc.DrawRectangle(0,0,20,20)
@@ -125,13 +152,14 @@ class AlphaControl(ColorControl):
 class ColorPicker(wx.Window):
     """ This is the combination of red, green, blue, alpha ColorControls"""
     def __init__(self, parent, ground="foreground", id=wx.ID_ANY, 
-            pos=wx.DefaultPosition, size=(80,320), style=wx.NO_BORDER, 
-            name="ColorPicker"):
+            pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.NO_BORDER, 
+            name="ColorPicker", label="Foreground", color=(0,0,0,255)):
         """ Contructor for the ColorPicker """
 
         wx.Window.__init__(self, parent, id, pos, size, style, name)
         self.parent = parent
         self.ground = ground
+        self.label = label
 
         self.reds = []
         self.greens = []
@@ -147,16 +175,16 @@ class ColorPicker(wx.Window):
             self.reds.append(ColorControl(self, 'red', (val, 0, 0, 255), ground))
             self.greens.append(ColorControl(self, 'green', (0, val, 0, 255), ground))
             self.blues.append(ColorControl(self, 'blue', (0, 0, val, 255), ground))
-            self.alphas.append(AlphaControl(self, 'alpha', (0, 0, 0, val), ground))
+            self.alphas.append(AlphaControl(self, 'alpha', (0, 0, 0, val|63), ground))
             redSizer.Add(self.reds[i], 1, wx.SHAPED)
             greenSizer.Add(self.greens[i], 1, wx.SHAPED)
             blueSizer.Add(self.blues[i], 1, wx.SHAPED)
             alphaSizer.Add(self.alphas[i], 1, wx.SHAPED)
 
-        self.reds[3].selected = True
-        self.greens[3].selected = True
-        self.blues[3].selected = True
-        self.alphas[0].selected = True
+        self.reds[3 - (color[0] >> 6)].selected = True
+        self.greens[3 - (color[1] >> 6)].selected = True
+        self.blues[3 - (color[2] >> 6)].selected = True
+        self.alphas[3 - (color[3] >> 6)].selected = True
 
         colors = wx.BoxSizer(wx.HORIZONTAL)
         colors.Add(redSizer)
@@ -164,7 +192,12 @@ class ColorPicker(wx.Window):
         colors.Add(blueSizer)
         colors.Add(alphaSizer)
 
-        self.SetSizer(colors)
+        picker = wx.BoxSizer(wx.VERTICAL)
+        picker.AddSpacer(5)
+        picker.Add(wx.StaticText(self, label=label))
+        picker.Add(colors)
+
+        self.SetSizer(picker)
         self.SetAutoLayout(1)
         colors.Fit(self)
 
@@ -174,8 +207,7 @@ class ColorPicker(wx.Window):
         for item in items:
             setattr(item, 'selected', False)
             item.Refresh()
-        #self.colorDisplay.Refresh() # FIXME updated the selected colorDisplay from Presets
-        self.parent.activeColor.Refresh() #colorPresetPanel.selected.Refresh()
+        self.parent.activeColor.Refresh() 
 
         # When changing one of R,G,B the alphas column also needs updating
         if cname != 'alpha':
@@ -188,8 +220,8 @@ class ColorPicker(wx.Window):
             color: gives the color value to get the intensity from in order to
             select the correct gradient for this cname
             """
-        #c = self.colorDisplay.color; # FIXME update the selected colorDisplay from Presets
         c = getattr(self.parent.activeColor, self.ground)
+        # this also changes the values of ground inside activeColor!
         if cname == 'red':
             c[0] = color[0]
         elif cname == 'green':
@@ -198,6 +230,7 @@ class ColorPicker(wx.Window):
             c[2] = color[2]
         else:
             c[3] = color[3]
+        self.parent.activeColor.CheckTransparant(self.ground)
     
     def UpdateColor(self, color):
         self.ClearSelection("red")
@@ -246,7 +279,11 @@ class ColorDisplay(wx.Window):
         setattr(self, btn, True)
         self.parent.selected = self
         setattr(self.parent, btn, self)
-        self.parent.parent.colorPicker.UpdateColor(self.color)
+        ground = "foreground"
+        if btn == "right":
+            ground = "background"
+        getattr(self.parent.parent, ground).UpdateColor(self.color)
+        #self.parent.parent.colorPicker.UpdateColor(self.color)
 
     def OnPaint(self, event):
         """ Draws its color """
@@ -299,7 +336,6 @@ class ColorDisplay(wx.Window):
             gc.SetPen(selectPen)
             gc.DrawLines([[10,23], [15,15], [20,23]])
             
-
 
 class ColorPresetPanel(wx.Panel):
     """ This class contains 10 color Displays """
@@ -537,8 +573,11 @@ class DrawControl(wx.Control):
             dy = -dy
         D = 2*dy - dx
         y = y0
+        (w,h) = self.imageSize
 
         for x in range(x0, x1 + 1):
+            if x < 0 or x >= w or y < 0 or y >= h:
+                continue
             r = self.image.GetRed(x,y)
             g = self.image.GetGreen(x,y)
             b = self.image.GetBlue(x,y)
@@ -558,8 +597,11 @@ class DrawControl(wx.Control):
             dx = -dx
         D = 2*dx - dy
         x = x0
+        (w,h) = self.imageSize
 
         for y in range(y0, y1 + 1):
+            if x < 0 or x >= w or y < 0 or y >= h:
+                continue
             r = self.image.GetRed(x,y)
             g = self.image.GetGreen(x,y)
             b = self.image.GetBlue(x,y)
@@ -585,7 +627,6 @@ class DrawControl(wx.Control):
         color = getattr(self.parent.parent.activeColor, ground)
         self.command = DrawCommand(self)
         self.SetPixel(x, y, color)
-        #getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
         self.prev = {"x":x, "y":y}
 
     def OnMotion(self, event):
@@ -593,11 +634,8 @@ class DrawControl(wx.Control):
         if event.Dragging():
             if event.LeftIsDown():
                 color = self.parent.parent.activeColor.foreground
-                #btn = "left"
             if event.RightIsDown():
                 color = self.parent.parent.activeColor.background
-                #btn = "right"
-            #getattr(self.parent.parent.colorPresetPanel, btn).OnClick(btn)
             x = event.GetX()
             y = event.GetY()
             self.PlotLine(color, self.prev["x"], self.prev["y"], x, y)
@@ -687,8 +725,10 @@ class MainWindow(wx.Frame):
 
         # create our components
         self.activeColor = ActiveColor(self)
-        self.colorPicker = ColorPicker(self)
-        #self.colorPresetPanel = ColorPresetPanel(self)
+        self.foreground = ColorPicker(self, color=self.activeColor.foreground, 
+                ground="foreground", label="Foreground")
+        self.background = ColorPicker(self, color=self.activeColor.background, 
+                ground="background", label="Background")
         self.drawWindow = DrawWindow(self)
 
         #self.CreateStatusBar() # A Statusbar in the bottom of the window
@@ -762,15 +802,12 @@ class MainWindow(wx.Frame):
 
         # Use some sizers to see layout options
         vert1 = wx.BoxSizer(wx.VERTICAL)
-        vert1.Add(self.activeColor, 0, wx.ALIGN_LEFT)
-        vert1.AddSpacer(5)
-        vert1.Add(wx.StaticText(self, label="Foreground"))
-        vert1.Add(self.colorPicker, 0, wx.ALIGN_LEFT)
+        vert1.Add(self.activeColor, 0, wx.ALIGN_TOP)
+        vert1.Add(self.foreground, 0, wx.ALIGN_TOP)
+        vert1.Add(self.background, 0, wx.ALIGN_TOP)
 
         sz = wx.BoxSizer(wx.VERTICAL)
-        #sz.Add(self.colorPresetPanel, 0, wx.ALIGN_LEFT)
         sz.Add(self.drawWindow, 1, wx.EXPAND)
-
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer.Add(vert1, 0)
         self.sizer.Add(sz,1)
@@ -880,7 +917,7 @@ class MainWindow(wx.Frame):
 
     def OnSize(self, event):
         (w,h) = self.GetClientSize()
-        self.drawWindow.SetSize((w - 80, h - 40)) #FIXME magic numbers (from other controls)
+        self.drawWindow.SetSize((w - 80, h)) #FIXME magic number (size of other controls)
 
     def Zoom(self, n):
         """ Set the zoom to the amount clicked on """
