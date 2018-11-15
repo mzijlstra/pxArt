@@ -49,10 +49,18 @@ class ActiveColor(wx.Control):
 
     def CheckTransparant(self, ground):
         g = getattr(self, ground)
-        if g[0] + g[1] + g[2] == 0 and g[3] >= 63:
+        if g[0] + g[1] + g[2] == 0 and g[3] <= 63:
             g[3] = 0
         else:
             g[3] = g[3] | 63
+
+    def SetColor(self, ground, color):
+        c = getattr(self, ground)
+        c[0] = color[0]
+        c[1] = color[1]
+        c[2] = color[2]
+        c[3] = color[3]
+        self.CheckTransparant(ground)
 
 class ColorControl(wx.Control):
     """ Color control class represents a clickable square where each instance 
@@ -221,7 +229,7 @@ class ColorPicker(wx.Window):
             select the correct gradient for this cname
             """
         c = getattr(self.parent.activeColor, self.ground)
-        # this also changes the values of ground inside activeColor!
+        # this changes the value of ground inside activeColor!
         if cname == 'red':
             c[0] = color[0]
         elif cname == 'green':
@@ -255,22 +263,26 @@ class PaletteItem(wx.Control):
         self.parent = parent
         self.SetInitialSize(size)
         self.color = color
-        self.foreground = False
-        self.background = False
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.Select("foreground"))
         self.Bind(wx.EVT_RIGHT_DOWN, self.Select("background"))
 
     def Select(self, ground):
-        """ Set foreground/background based on which mouse button pressed """
-        return lambda e: self.OnClick(ground)
+        """ Get/Set foreground/background based on which mouse button pressed """
+        return lambda e: self.OnClick(e, ground)
 
-    def OnClick(self, ground):
-        self.parent.ClearAttr(ground)
-        setattr(self, ground, True)
-        setattr(self.parent, ground, self)
-        getattr(self.parent.parent, ground).UpdateColor(self.color)
+    def OnClick(self, e, ground):
+        if e.ShiftDown():
+            c = getattr(self.parent.parent.activeColor, ground)
+            self.color[0] = c[0]
+            self.color[1] = c[1]
+            self.color[2] = c[2]
+            self.color[3] = c[3]
+            self.Refresh()
+        else:
+            getattr(self.parent.parent, ground).UpdateColor(self.color)
+            self.parent.parent.activeColor.SetColor(ground, self.color) 
 
     def OnPaint(self, event):
         """ Draws its color """
@@ -288,82 +300,45 @@ class PaletteItem(wx.Control):
         gc.SetBrush(gc.CreateBrush(wx.Brush(self.color)))
         gc.DrawRectangle(0, 0, 10, 10)
 
-        if self.foreground or self.background:
-            # create a contrasting outline color
-            sel = 0
-            c = self.color
-            if (c[0] + c[1] + c[2]) / 3 < 128:
-                sel = 255
-            selectPen =  gc.CreatePen(wx.Pen((sel, sel, sel, 255)))
-            noneBrush = gc.CreateBrush(wx.Brush((0,0,0,0)))
-            gc.SetBrush(noneBrush)
-            gc.SetPen(selectPen)
-            gc.DrawRectangle(0,0,9,9)
-
 
 class ColorPalette(wx.Panel):
-    """ This class contains 64 PaletteItems """
+    """ This class contains 256 PaletteItems """
 
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, 
             size=wx.DefaultSize, style=wx.NO_BORDER, name="ColorPresetPanel"):
         """ Contructor for the ColorPresetPanel """
         wx.Panel.__init__(self, parent, id, pos, size, style, name)
         self.parent = parent
-        self.foreground = None
-        self.background = None
 
         items = []
-        for r in range(0, 4):
-            for g in range(0,4):
-                for b in range(0,4):
-                    items.append(PaletteItem(self, [r*85,g*85,b*85,255]))
+        for a in range(0,4):
+            for g in range(0, 4):
+                for b in range(0,4,2):
+                    for r in range(0,4):
+                        items.append(PaletteItem(self, [r*85,g*85,b*85,a*85|63]))
+                        items.append(PaletteItem(self, [r*85,g*85,(b+1)*85,a*85|63]))
+        # make full black, lowest alpha fully transparant
+        items[0].color[3] = 0
+
+
 
         rows = wx.BoxSizer(wx.VERTICAL)
         rows.Add(wx.StaticText(self, label="Palette"))
-        for y in range(0,8):
+        for y in range(0,32):
             cols = wx.BoxSizer(wx.HORIZONTAL)
             for x in range(0,8):
                 cols.Add(items[y * 8 + x])
             rows.Add(cols)
 
-        self.foreground = items[0]
-        self.background = items[63]
-        items[0].foreground = True
-        items[63].background = True
-
         self.SetSizer(rows)
         self.SetAutoLayout(1)
         rows.Fit(self)
 
-    def ClearAttr(self, attr):
-        for i in self.items:
-            setattr(i, attr, False)
-            i.Refresh()
+    def Clear(self):
+        pass
 
-        # Black, white, transparent
-#        items.append(ColorDisplay(self, []))
-#        items.append(ColorDisplay(self, color=(255,255,255,255)))
-#        items.append(ColorDisplay(self, color=(0,0,0,0)))
-#
-#        items.append(ColorDisplay(self, color=(255,0,0,255)))
-#        items.append(ColorDisplay(self, color=(0,255,0,255)))
-#        items.append(ColorDisplay(self, color=(0,0,255,255)))
-#        items.append(ColorDisplay(self, color=(0,255,255,255)))
-#        items.append(ColorDisplay(self, color=(255,0,255,255)))
-#        items.append(ColorDisplay(self, color=(255,255,0,255)))
-#        items.append(ColorDisplay(self, color=(170,170,170,255)))
-#        self.items = items
-#
-#        itemsSizer = wx.BoxSizer(wx.HORIZONTAL)
-#        for i in range(0,10):
-#            itemsSizer.Add(self.items[i], 1, wx.ALIGN_LEFT, 0)
-#
-#        self.selected = items[0]
-#        items[0].selected = True
-#        self.left = items[0]
-#        items[0].left = True
-#        self.right = items[1]
-#        items[1].right = True
+    def Reset(self):
+        pass
 
 
 class PixelMod:
