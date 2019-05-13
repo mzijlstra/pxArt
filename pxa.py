@@ -430,7 +430,7 @@ class DrawControl(wx.Control):
 
         self.imageSize = imageSize
         self.image = wx.Bitmap.ConvertToImage(wx.Bitmap.FromRGBA(
-            imageSize[0], imageSize[1], 255,255,255,255))
+            imageSize[0], imageSize[1], 0,0,0,0))
         self.color = color
         self.scale = sc = 1
         self.prev = None
@@ -715,7 +715,7 @@ class NewImageDialog(wx.Dialog):
     def OnOk(self, e):
         w = int(self.width.GetValue())
         h = int(self.height.GetValue())
-        img = wx.Bitmap.ConvertToImage(wx.Bitmap.FromRGBA(w, h, 255,255,255,255))
+        img = wx.Bitmap.ConvertToImage(wx.Bitmap.FromRGBA(w, h, 0,0,0,0))
         self.GetParent().drawWindow.drawControl.SetImage(img)
         self.Destroy()
 
@@ -765,13 +765,6 @@ class MainWindow(wx.Frame):
         self.menuUndo.Enable(False)
         self.menuRedo.Enable(False)
 
-        # Create a color depth menu
-        depthMenu = wx.Menu()
-        depth32 = depthMenu.Append(wx.ID_ANY, "32bit RGBA", "32bit RGBA")
-        depth16 = depthMenu.Append(wx.ID_ANY, "16bit RGBA", "16bit RGBA")
-        depth12 = depthMenu.Append(wx.ID_ANY, "12bit RGBA", "12bit RGBA")
-        depth8  = depthMenu.Append(wx.ID_ANY, "8bit RGBA", "8bit RGBA")
-
         # Create a zoom menu
         zoomMenu = wx.Menu()
         z100 = zoomMenu.Append(wx.ID_ANY, "1:1", "Zoom 100%")
@@ -789,7 +782,6 @@ class MainWindow(wx.Frame):
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
         menuBar.Append(editMenu, "&Edit")
-        menuBar.Append(depthMenu, "Depth")
         menuBar.Append(zoomMenu, "Zoom")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
@@ -812,9 +804,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.Zoom(8), z800)
         self.Bind(wx.EVT_MENU, self.Zoom(9), z900)
         self.Bind(wx.EVT_MENU, self.Zoom(10), z1000)
-        self.Bind(wx.EVT_MENU, self.LowerToBitDepth(16), depth16)
-        self.Bind(wx.EVT_MENU, self.LowerToBitDepth(12), depth12)
-        self.Bind(wx.EVT_MENU, self.LowerToBitDepth(8), depth8)
 
         # Use some sizers to see layout options
         vert1 = wx.BoxSizer(wx.VERTICAL)
