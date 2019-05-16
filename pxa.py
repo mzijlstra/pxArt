@@ -403,11 +403,12 @@ class DrawCommand:
     def __init__(self, target):
         self.pixelMods = {}
         self.target = target
+        self.children = []
+        self.parent = None;
 
     def AddPixelMod(self, mod):
         if (mod.x,mod.y) not in self.pixelMods:
             self.pixelMods[(mod.x,mod.y)] = mod
-
 
     def Invoke(self):
         for m in self.pixelMods.values():
@@ -630,7 +631,7 @@ class DrawControl(wx.Control):
         if btn == "right":
             ground = "background"
         color = getattr(WINDOW.activeColor, ground)
-        self.command = DrawCommand(self)
+        self.command = DrawCommand(self) #a new command everytime we click
         self.SetPixel(x, y, color)
         self.prev = {"x":x, "y":y}
 
@@ -734,8 +735,7 @@ class MainWindow(wx.Frame):
 
         self.filename = ''
         self.dirname = ''
-        self.commands = []
-        self.cIndex = 0
+        self.command = DrawCommand(self)
 
         # create our components
         activeColorPane = ActiveColorPane(self)
@@ -896,30 +896,28 @@ class MainWindow(wx.Frame):
         self.Close(True)  # Close the frame.
 
     def OnUndo(self, e):
-        self.cIndex -= 1
-        self.commands[self.cIndex].Revoke()
-        if (self.cIndex == 0):
-            self.menuUndo.Enable(False)
-        if self.cIndex < len(self.commands):
-            self.menuRedo.Enable(True)
+        if self.command.target != self:
+            self.command.Revoke()
+            self.command = self.command.parent
+            if self.command.target == self:
+                self.menuUndo.Enable(False)
+        self.menuRedo.Enable(True)
 
     def OnRedo(self, e):
-        self.commands[self.cIndex].Invoke()
-        self.cIndex += 1
-        if self.cIndex > 0:
-            self.menuUndo.Enable(True)
-        if self.cIndex >= len(self.commands):
-            self.menuRedo.Enable(False)
+        if len(self.command.children) >= 1:
+            child = self.command.children[-1]
+            child.Invoke()
+            self.command = child
+            if len(child.children) == 0:
+                self.menuRedo.Enable(False)
+        self.menuUndo.Enable(True)
 
     def AddCommand(self, command):
-        if len(self.commands) <= self.cIndex:
-            self.commands.append(command)
-            self.cIndex += 1
-        else:
-            self.commands[self.cIndex] = command
-            self.cIndex += 1
-        if (self.cIndex > 0):
-            self.menuUndo.Enable(True)
+        command.parent = self.command
+        self.command.children.append(command);
+        self.command = command
+        self.menuUndo.Enable(True)
+        self.menuRedo.Enable(False)
 
     def OnSize(self, event):
         (w,h) = self.GetClientSize()
