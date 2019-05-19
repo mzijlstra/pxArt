@@ -501,6 +501,7 @@ class DrawControl(wx.Control):
         """ Zoom in or out to the provided scale """
         self.scale = n
         self._resize()
+        WINDOW.statusBar.SetStatusText("1:" +str(n), 1)
 
     def OnPaint(self, event):
         """ The onPaint handler function """
@@ -641,8 +642,8 @@ class DrawControl(wx.Control):
         x = event.GetX()
         y = event.GetY()
         s = self.scale
-        status = "x: "+str(int(x/s)) + " y: " + str(int(y/s))
-        WINDOW.statusBar.SetStatusText(status)
+        status = str(int(x/s)) + "," + str(int(y/s))
+        WINDOW.statusBar.SetStatusText(status, 2)
         if event.Dragging():
             if event.LeftIsDown():
                 color = WINDOW.activeColor.foreground
@@ -747,7 +748,8 @@ class MainWindow(wx.Frame):
         self.drawWindow = DrawWindow(self)
 
         # create a statusbar
-        self.statusBar = self.CreateStatusBar() 
+        self.statusBar = self.CreateStatusBar(3)
+        self.SetStatusWidths([-1, 50, 100]) 
 
         # Setting up the menu.
         filemenu= wx.Menu()
@@ -784,6 +786,13 @@ class MainWindow(wx.Frame):
         menuBar.Append(editMenu, "&Edit")
         menuBar.Append(zoomMenu, "Zoom")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
+
+        # create keyboard shortcuts
+        entries = [wx.AcceleratorEntry() for i in range(2)]
+        entries[0].Set(wx.ACCEL_CTRL, ord('Z'), wx.ID_UNDO, self.menuUndo)
+        entries[1].Set(wx.ACCEL_CTRL, ord('Y'), wx.ID_REDO, self.menuRedo)
+        accel = wx.AcceleratorTable(entries)
+        self.SetAcceleratorTable(accel)
 
         # Events.
         self.Bind(wx.EVT_MENU, self.OnNew, menuNew)
