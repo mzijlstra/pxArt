@@ -737,6 +737,7 @@ class MainWindow(wx.Frame):
         self.filename = ''
         self.dirname = ''
         self.command = DrawCommand(self)
+        self.zoom = 5
 
         # create our components
         activeColorPane = ActiveColorPane(self)
@@ -767,30 +768,29 @@ class MainWindow(wx.Frame):
         self.menuUndo.Enable(False)
         self.menuRedo.Enable(False)
 
-        # Create a zoom menu
-        zoomMenu = wx.Menu()
-        z100 = zoomMenu.Append(wx.ID_ANY, "1:1", "Zoom 100%")
-        z200 = zoomMenu.Append(wx.ID_ANY, "1:2", "Zoom 200%")
-        z300 = zoomMenu.Append(wx.ID_ANY, "1:3", "Zoom 300%")
-        z400 = zoomMenu.Append(wx.ID_ANY, "1:4", "Zoom 400%")
-        z500 = zoomMenu.Append(wx.ID_ANY, "1:5", "Zoom 500%")
-        z600 = zoomMenu.Append(wx.ID_ANY, "1:6", "Zoom 600%")
-        z700 = zoomMenu.Append(wx.ID_ANY, "1:7", "Zoom 700%")
-        z800 = zoomMenu.Append(wx.ID_ANY, "1:8", "Zoom 800%")
-        z900 = zoomMenu.Append(wx.ID_ANY, "1:9", "Zoom 900%")
-        z1000 = zoomMenu.Append(wx.ID_ANY, "1:10", "Zoom 1000%")
+        # Create a view menu
+        viewMenu = wx.Menu()
+        self.zoomIn = viewMenu.Append(wx.ID_ZOOM_IN, "Zoom &In", "Zoom In")
+        self.zoomOut = viewMenu.Append(wx.ID_ZOOM_OUT, "Zoom &Out", "Zoom Out")
 
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
         menuBar.Append(editMenu, "&Edit")
-        menuBar.Append(zoomMenu, "Zoom")
+        menuBar.Append(viewMenu, "&View")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
         # create keyboard shortcuts
-        entries = [wx.AcceleratorEntry() for i in range(2)]
+        entries = [wx.AcceleratorEntry() for i in range(4)]
         entries[0].Set(wx.ACCEL_CTRL, ord('Z'), wx.ID_UNDO, self.menuUndo)
         entries[1].Set(wx.ACCEL_CTRL, ord('Y'), wx.ID_REDO, self.menuRedo)
+        entries[2].Set(wx.ACCEL_CTRL, ord('='), wx.ID_ZOOM_IN, self.zoomIn)
+        entries[3].Set(wx.ACCEL_CTRL, ord('-'), wx.ID_ZOOM_OUT, self.zoomOut)
+        self.menuUndo.SetAccel(entries[0])
+        self.menuRedo.SetAccel(entries[1])
+        self.zoomIn.SetAccel(entries[2])
+        self.zoomOut.SetAccel(entries[3])
+
         accel = wx.AcceleratorTable(entries)
         self.SetAcceleratorTable(accel)
 
@@ -803,16 +803,8 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
         self.Bind(wx.EVT_MENU, self.OnUndo, self.menuUndo)
         self.Bind(wx.EVT_MENU, self.OnRedo, self.menuRedo)
-        self.Bind(wx.EVT_MENU, self.Zoom(1), z100)
-        self.Bind(wx.EVT_MENU, self.Zoom(2), z200)
-        self.Bind(wx.EVT_MENU, self.Zoom(3), z300)
-        self.Bind(wx.EVT_MENU, self.Zoom(4), z400)
-        self.Bind(wx.EVT_MENU, self.Zoom(5), z500)
-        self.Bind(wx.EVT_MENU, self.Zoom(6), z600)
-        self.Bind(wx.EVT_MENU, self.Zoom(7), z700)
-        self.Bind(wx.EVT_MENU, self.Zoom(8), z800)
-        self.Bind(wx.EVT_MENU, self.Zoom(9), z900)
-        self.Bind(wx.EVT_MENU, self.Zoom(10), z1000)
+        self.Bind(wx.EVT_MENU, self.OnZoomIn, self.zoomIn)
+        self.Bind(wx.EVT_MENU, self.OnZoomOut, self.zoomOut)
 
         # Use some sizers to see layout options
         vert1 = wx.BoxSizer(wx.VERTICAL)
@@ -834,7 +826,7 @@ class MainWindow(wx.Frame):
         self.Show()
 
         # set starting zoom level
-        self.drawWindow.drawControl.SetZoom(5)
+        self.drawWindow.drawControl.SetZoom(self.zoom)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
     def OnNew(self, e):
@@ -910,7 +902,7 @@ class MainWindow(wx.Frame):
             self.command = self.command.parent
             if self.command.target == self:
                 self.menuUndo.Enable(False)
-        self.menuRedo.Enable(True)
+            self.menuRedo.Enable(True)
 
     def OnRedo(self, e):
         if len(self.command.children) >= 1:
@@ -919,7 +911,23 @@ class MainWindow(wx.Frame):
             self.command = child
             if len(child.children) == 0:
                 self.menuRedo.Enable(False)
-        self.menuUndo.Enable(True)
+            self.menuUndo.Enable(True)
+
+    def OnZoomIn(self, e):
+        if self.zoom < 10:
+            self.zoom += 1
+            self.drawWindow.drawControl.SetZoom(self.zoom)
+            if self.zoom == 10:
+                self.zoomIn.Enable(False)
+            self.zoomOut.Enable(True)
+    
+    def OnZoomOut(self, e):
+        if self.zoom > 1:
+            self.zoom -= 1
+            self.drawWindow.drawControl.SetZoom(self.zoom)
+            if self.zoom == 1:
+                self.zoomOut.Enable(False)
+            self.zoomIn.Enable(True)
 
     def AddCommand(self, command):
         command.parent = self.command
@@ -931,10 +939,6 @@ class MainWindow(wx.Frame):
     def OnSize(self, event):
         (w,h) = self.GetClientSize()
         self.drawWindow.SetSize((w - 80, h)) #FIXME magic number (size of other controls)
-
-    def Zoom(self, n):
-        """ Set the zoom to the amount clicked on """
-        return lambda e: self.drawWindow.drawControl.SetZoom(n)
 
     def LowerToBitDepth(self, n):
         """ returns menu item handler to call lowerToBitDepth of given value"""
