@@ -152,7 +152,7 @@ class BucketFill(wx.Control):
             self.command.AddPixelMod(PixelMod(x, y, (r, g, b, a), color))
             done[pos] = True
             # check pixel above
-            if ((x, y - 1) not in done and (x, y - 1) not in queue
+            if ((x, y - 1) not in done 
                 and w > x >= 0
                 and h > y - 1 >= 0
                 and r == image.GetRed(x, y - 1)
@@ -160,8 +160,9 @@ class BucketFill(wx.Control):
                 and b == image.GetBlue(x, y - 1)
                     and a == image.GetAlpha(x, y - 1)):
                 queue.append((x, y - 1))
+                done[(x, y - 1)] = True
             # check pixel to the right
-            if ((x + 1, y) not in done and (x + 1, y) not in queue
+            if ((x + 1, y) not in done 
                 and w > x + 1 >= 0
                 and h > y >= 0
                 and r == image.GetRed(x + 1, y)
@@ -169,8 +170,9 @@ class BucketFill(wx.Control):
                 and b == image.GetBlue(x + 1, y)
                     and a == image.GetAlpha(x + 1, y)):
                 queue.append((x + 1, y))
+                done[(x + 1, y)] = True
             # check pixel below
-            if ((x, y + 1) not in done and (x, y + 1) not in queue
+            if ((x, y + 1) not in done 
                 and w > x >= 0
                 and h > y + 1 >= 0
                 and r == image.GetRed(x, y + 1)
@@ -178,8 +180,9 @@ class BucketFill(wx.Control):
                 and b == image.GetBlue(x, y + 1)
                     and a == image.GetAlpha(x, y + 1)):
                 queue.append((x, y + 1))
+                done[(x, y + 1)] = True
             # check pixel to the left
-            if ((x - 1, y) not in done and (x - 1, y) not in queue
+            if ((x - 1, y) not in done 
                 and w > x - 1 >= 0
                 and h > y >= 0
                 and r == image.GetRed(x - 1, y)
@@ -187,6 +190,7 @@ class BucketFill(wx.Control):
                 and b == image.GetBlue(x - 1, y)
                     and a == image.GetAlpha(x - 1, y)):
                 queue.append((x - 1, y))
+                done[(x - 1, y)] = True
         self.command.Invoke()
 
     def ToolDragged(self, image, x, y, btn):
