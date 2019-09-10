@@ -1,3 +1,4 @@
+"""Module docstring"""
 import png
 from array import array
 import wx
@@ -8,213 +9,237 @@ WINDOW = None
 
 
 class Pencil(wx.Control):
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
+    "The Pencil Tool for used for drawing"
+
+    #pylint: disable-msg=too-many-arguments
+    def __init__(self, parent, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=(40, 40), style=wx.NO_BORDER, validator=wx.DefaultValidator,
                  name="Pencil"):
-        global WINDOW
-        wx.Control.__init__(self, parent, id, pos, size,
+        wx.Control.__init__(self, parent, wxid, pos, size,
                             style, validator, name)
         wx.StaticText(self, label="Pen", pos=(0, 0))
-        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
+        self.window = None
+        self.prev = None
+        self.command = None
 
-    def OnLeftClick(self, event):
-        global WINDOW
-        WINDOW.tool = self
+    #pylint: disable=unused-argument
+    def on_left_click(self, event):
+        "handles left clicks on the tool"
+        self.window.tool = self
 
-    def ToolDown(self, image, x, y, btn):
-        global WINDOW
+    def tool_down(self, image, pos, btn):
+        "adds a pixel to the image and creates an undo command"
         if btn == "left":
-            color = WINDOW.activeColor.foreground
+            color = self.window.activeColor.foreground
         elif btn == "right":
-            color = WINDOW.activeColor.background
-        self.prev = {"x": x, "y": y}
+            color = self.window.activeColor.background
+        self.prev = pos
         self.command = DrawCommand(image)  # a new command everytime we click
-        r = image.GetRed(x, y)
-        g = image.GetGreen(x, y)
-        b = image.GetBlue(x, y)
-        a = image.GetAlpha(x, y)
-        self.command.AddPixelMod(PixelMod(x, y, (r, g, b, a), color))
-        WINDOW.AddCommand(self.command)
+        c_r = image.GetRed(pos["x"], pos["y"])
+        c_g = image.GetGreen(pos["x"], pos["y"])
+        c_b = image.GetBlue(pos["x"], pos["y"])
+        c_a = image.GetAlpha(pos["x"], pos["y"])
+        self.command.AddPixelMod(
+            PixelMod(pos["x"], pos["y"], (c_r, c_g, c_b, c_a), color))
+        self.window.AddCommand(self.command)
         self.command.Invoke()
 
-    def ToolDragged(self, image, x, y, btn):
-        """ The onMotion handler function """
-        global WINDOW
+    def tool_dragged(self, image, pos, btn):
+        "draws a line when on the image, adds to the exisiting undo command"
         if btn == "left":
-            color = WINDOW.activeColor.foreground
+            color = self.window.activeColor.foreground
         elif btn == "right":
-            color = WINDOW.activeColor.background
-        self.PlotLine(image, color, self.prev["x"], self.prev["y"], x, y)
-        self.prev = {"x": x, "y": y}
+            color = self.window.activeColor.background
+        self.plot_line(image, color, self.prev, pos)
+        self.prev = pos
 
-    # Bresenham's line drawing algorithm (as found on wikipidia)
-    def PlotLine(self, image, color, x0, y0, x1, y1):
-        if abs(y1 - y0) < abs(x1 - x0):
-            if x0 > x1:
-                self._plotLineLow(image, color, x1, y1, x0, y0)
+    def plot_line(self, image, color, pos0, pos1):
+        "Bresenham's line plotting algorithm as found on wikipedia"
+        if abs(pos1["y"] - pos0["y"]) < abs(pos1["x"] - pos0["x"]):
+            if pos0["x"] > pos1["x"]:
+                self.plot_line_low(image, color, pos1, pos0)
             else:
-                self._plotLineLow(image, color, x0, y0, x1, y1)
+                self.plot_line_low(image, color, pos0, pos1)
         else:
-            if y0 > y1:
-                self._plotLineHigh(image, color, x1, y1, x0, y0)
+            if pos0["y"] > pos1["y"]:
+                self.plot_line_high(image, color, pos1, pos0)
             else:
-                self._plotLineHigh(image, color, x0, y0, x1, y1)
+                self.plot_line_high(image, color, pos0, pos1)
         # redraws the entire line so far (opportunity for optimization)
         self.command.Invoke()
 
-    def _plotLineLow(self, image, color, x0, y0, x1, y1):
-        dx = x1 - x0
-        dy = y1 - y0
-        yi = 1
-        if dy < 0:
-            yi = -1
-            dy = -dy
-        D = 2*dy - dx
-        y = y0
-        w = image.GetWidth()
-        h = image.GetHeight()
+    def plot_line_low(self, image, color, pos0, pos1):
+        "helper function for plot_line"
+        delta_x = pos1["x"] - pos0["x"]
+        delta_y = pos1["y"] - pos0["y"]
+        y_increment = 1
+        if delta_y < 0:
+            y_increment = -1
+            delta_y = -delta_y
+        d_delta = 2*delta_y - delta_x
+        y_pos = pos0["y"]
+        width = image.GetWidth()
+        height = image.GetHeight()
 
-        for x in range(x0, x1 + 1):
-            if x < 0 or x >= w or y < 0 or y >= h:
+        for x_pos in range(pos0["x"], pos1["x"] + 1):
+            if x_pos < 0 or x_pos >= width or y_pos < 0 or y_pos >= height:
                 continue
-            r = image.GetRed(x, y)
-            g = image.GetGreen(x, y)
-            b = image.GetBlue(x, y)
-            a = image.GetAlpha(x, y)
-            self.command.AddPixelMod(PixelMod(x, y, (r, g, b, a), color))
-            if D > 0:
-                y = y + yi
-                D = D - 2*dx
-            D = D + 2*dy
+            self.command.AddPixelMod(
+                PixelMod(x_pos, y_pos, (image.GetRed(x_pos, y_pos),
+                                        image.GetGreen(x_pos, y_pos),
+                                        image.GetBlue(x_pos, y_pos),
+                                        image.GetAlpha(x_pos, y_pos)), color))
+            if d_delta > 0:
+                y_pos = y_pos + y_increment
+                d_delta = d_delta - 2*delta_x
+            d_delta = d_delta + 2*delta_y
 
-    def _plotLineHigh(self, image, color, x0, y0, x1, y1):
-        dx = x1 - x0
-        dy = y1 - y0
-        xi = 1
-        if dx < 0:
-            xi = -1
-            dx = -dx
-        D = 2*dx - dy
-        x = x0
-        w = image.GetWidth()
-        h = image.GetHeight()
+    def plot_line_high(self, image, color, pos0, pos1):
+        "helper function for plot_line"
+        delta_x = pos1["x"] - pos0["x"]
+        delta_y = pos1["y"] - pos0["y"]
+        x_increment = 1
+        if delta_x < 0:
+            x_increment = -1
+            delta_x = -delta_x
+        d_delta = 2*delta_x - delta_y
+        x_pos = pos0["x"]
+        width = image.GetWidth()
+        height = image.GetHeight()
 
-        for y in range(y0, y1 + 1):
-            if x < 0 or x >= w or y < 0 or y >= h:
+        for y_pos in range(pos0["y"], pos1["y"] + 1):
+            if x_pos < 0 or x_pos >= width or y_pos < 0 or y_pos >= height:
                 continue
-            r = image.GetRed(x, y)
-            g = image.GetGreen(x, y)
-            b = image.GetBlue(x, y)
-            a = image.GetAlpha(x, y)
-            self.command.AddPixelMod(PixelMod(x, y, (r, g, b, a), color))
-            if D > 0:
-                x = x + xi
-                D = D - 2*dy
-            D = D + 2*dx
+            self.command.AddPixelMod(
+                PixelMod(x_pos, y_pos, (image.GetRed(x_pos, y_pos),
+                                        image.GetGreen(x_pos, y_pos),
+                                        image.GetBlue(x_pos, y_pos),
+                                        image.GetAlpha(x_pos, y_pos)), color))
+            if d_delta > 0:
+                x_pos = x_pos + x_increment
+                d_delta = d_delta - 2*delta_y
+            d_delta = d_delta + 2*delta_x
 
 
 class BucketFill(wx.Control):
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
+    """The bucket fill tool, allowing you to flood fill an area"""
+
+    #pylint: disable-msg=too-many-arguments
+    def __init__(self, parent, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=(40, 40), style=wx.NO_BORDER, validator=wx.DefaultValidator,
                  name="BucketFill"):
-        global WINDOW
-        wx.Control.__init__(self, parent, id, pos, size,
-                            style, validator, name)
+        wx.Control.__init__(self, parent, wxid, pos,
+                            size, style, validator, name)
         wx.StaticText(self, label="Fill", pos=(0, 0))
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftClick)
+        self.window = None
+        self.command = None
 
-    def OnLeftClick(self, event):
+    #pylint: disable=unused-argument
+    def on_left_click(self, event):
+        "on left click handler onto tool icon"
         print("bucket fill time!")
-        global WINDOW
-        WINDOW.tool = self
+        self.window.tool = self
 
-    def ToolDown(self, image, x, y, btn):
-        global WINDOW
+    #pylint: disable=too-many-locals
+    def tool_down(self, image, pos, btn):
+        """bucket fill when image is clicked, 
+        breadth first search fill all pixels of the same color"""
         if btn == "left":
-            color = WINDOW.activeColor.foreground
+            color = self.window.activeColor.foreground
         elif btn == "right":
-            color = WINDOW.activeColor.background
+            color = self.window.activeColor.background
         self.command = DrawCommand(image)  # a new command everytime we click
-        r = image.GetRed(x, y)
-        g = image.GetGreen(x, y)
-        b = image.GetBlue(x, y)
-        a = image.GetAlpha(x, y)
-        WINDOW.AddCommand(self.command)
+        red = image.GetRed(pos["x"], pos["y"])
+        green = image.GetGreen(pos["x"], pos["y"])
+        blue = image.GetBlue(pos["x"], pos["y"])
+        alpha = image.GetAlpha(pos["x"], pos["y"])
+        self.window.AddCommand(self.command)
         # breath first search replacing all surrounding pixels with the same color
-        w = image.GetWidth()
-        h = image.GetHeight()
+        width = image.GetWidth()
+        height = image.GetHeight()
         from collections import deque
-        queue = deque([(x,y)])
+        queue = deque([(pos["x"], pos["y"])])
         done = {}
-        while len(queue):
-            pos = queue.popleft()
-            (x, y) = pos
-            self.command.AddPixelMod(PixelMod(x, y, (r, g, b, a), color))
-            done[pos] = True
+        while queue:
+            lookat = queue.popleft()
+            (x_pos, y_pos) = lookat
+            self.command.AddPixelMod(
+                PixelMod(x_pos, y_pos, (red, green, blue, alpha), color))
+            done[lookat] = True
             # check pixel above
-            if ((x, y - 1) not in done 
-                and w > x >= 0
-                and h > y - 1 >= 0
-                and r == image.GetRed(x, y - 1)
-                and g == image.GetGreen(x, y - 1)
-                and b == image.GetBlue(x, y - 1)
-                    and a == image.GetAlpha(x, y - 1)):
-                queue.append((x, y - 1))
-                done[(x, y - 1)] = True
+            if ((x_pos, y_pos - 1) not in done
+                    and width > x_pos >= 0
+                    and height > y_pos - 1 >= 0
+                    and red == image.GetRed(x_pos, y_pos - 1)
+                    and green == image.GetGreen(x_pos, y_pos - 1)
+                    and blue == image.GetBlue(x_pos, y_pos - 1)
+                    and alpha == image.GetAlpha(x_pos, y_pos - 1)):
+                queue.append((x_pos, y_pos - 1))
+                done[(x_pos, y_pos - 1)] = True
             # check pixel to the right
-            if ((x + 1, y) not in done 
-                and w > x + 1 >= 0
-                and h > y >= 0
-                and r == image.GetRed(x + 1, y)
-                and g == image.GetGreen(x + 1, y)
-                and b == image.GetBlue(x + 1, y)
-                    and a == image.GetAlpha(x + 1, y)):
-                queue.append((x + 1, y))
-                done[(x + 1, y)] = True
+            if ((x_pos + 1, y_pos) not in done
+                    and width > x_pos + 1 >= 0
+                    and height > y_pos >= 0
+                    and red == image.GetRed(x_pos + 1, y_pos)
+                    and green == image.GetGreen(x_pos + 1, y_pos)
+                    and blue == image.GetBlue(x_pos + 1, y_pos)
+                    and alpha == image.GetAlpha(x_pos + 1, y_pos)):
+                queue.append((x_pos + 1, y_pos))
+                done[(x_pos + 1, y_pos)] = True
             # check pixel below
-            if ((x, y + 1) not in done 
-                and w > x >= 0
-                and h > y + 1 >= 0
-                and r == image.GetRed(x, y + 1)
-                and g == image.GetGreen(x, y + 1)
-                and b == image.GetBlue(x, y + 1)
-                    and a == image.GetAlpha(x, y + 1)):
-                queue.append((x, y + 1))
-                done[(x, y + 1)] = True
+            if ((x_pos, y_pos + 1) not in done
+                    and width > x_pos >= 0
+                    and height > y_pos + 1 >= 0
+                    and red == image.GetRed(x_pos, y_pos + 1)
+                    and green == image.GetGreen(x_pos, y_pos + 1)
+                    and blue == image.GetBlue(x_pos, y_pos + 1)
+                    and alpha == image.GetAlpha(x_pos, y_pos + 1)):
+                queue.append((x_pos, y_pos + 1))
+                done[(x_pos, y_pos + 1)] = True
             # check pixel to the left
-            if ((x - 1, y) not in done 
-                and w > x - 1 >= 0
-                and h > y >= 0
-                and r == image.GetRed(x - 1, y)
-                and g == image.GetGreen(x - 1, y)
-                and b == image.GetBlue(x - 1, y)
-                    and a == image.GetAlpha(x - 1, y)):
-                queue.append((x - 1, y))
-                done[(x - 1, y)] = True
+            if ((x_pos - 1, y_pos) not in done
+                    and width > x_pos - 1 >= 0
+                    and height > y_pos >= 0
+                    and red == image.GetRed(x_pos - 1, y_pos)
+                    and green == image.GetGreen(x_pos - 1, y_pos)
+                    and blue == image.GetBlue(x_pos - 1, y_pos)
+                    and alpha == image.GetAlpha(x_pos - 1, y_pos)):
+                queue.append((x_pos - 1, y_pos))
+                done[(x_pos - 1, y_pos)] = True
         self.command.Invoke()
 
-    def ToolDragged(self, image, x, y, btn):
-        pass
+    def tool_dragged(self, image, pos, btn):
+        "no functionality for dragging bucket fill"
 
 
 class ToolPane(wx.CollapsiblePane):
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
+    #pylint: disable-msg=too-many-arguments
+    def __init__(self, parent, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.NO_BORDER,
                  validator=wx.DefaultValidator, name="ToolPane"):
-        wx.CollapsiblePane.__init__(self, parent, id, "Tools", pos, size,
+        wx.CollapsiblePane.__init__(self, parent, wxid, "Tools", pos, size,
                                     style, validator, name)
 
+        self.parent = parent
         self.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.OnChange)
+        self.pencil = Pencil(self.GetPane())
+        self.pencil.window = parent
+        self.bucket_fill = BucketFill(self.GetPane())
+        self.bucket_fill.window = parent
+        parent.tool = self.pencil
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(Pencil(self.GetPane()))
-        sizer.Add(BucketFill(self.GetPane()))
-        w = self.GetPane()
-        w.SetSizer(sizer)
-        sizer.SetSizeHints(w)
+        sizer.Add(self.pencil)
+        sizer.Add(self.bucket_fill)
+        pane = self.GetPane()
+        pane.SetSizer(sizer)
+        sizer.SetSizeHints(pane)
         # don't start collapsed
         self.Expand()
 
+    #pylint: disable=unused-argument
     def OnChange(self, event):
         self.GetParent().Layout()
 
@@ -659,7 +684,7 @@ class DrawControl(wx.Control):
     """ The DrawControl class contains the image which we are maniplulating  """
 
     def __init__(self, parent, imageSize=(64, 64), color=(255, 255, 255, 255),
-                 id=wx.ID_ANY,  pos=wx.DefaultPosition, size=wx.DefaultSize,
+                 id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize,
                  style=wx.BORDER_DEFAULT, validator=wx.DefaultValidator,
                  name="DrawControl"):
         """ Constructor for DrawControl """
@@ -772,28 +797,26 @@ class DrawControl(wx.Control):
 
     def OnClick(self, event):
         """ Generic event handler for left, right, middle """
-        sc = self.scale
-        x = event.GetX() // sc
-        y = event.GetY() // sc
+        scale = self.scale
+        pos = {"x": event.GetX() // scale, "y": event.GetY() // scale}
         btn = "left"
         if event.RightIsDown():
             btn = "right"
-        WINDOW.tool.ToolDown(self.activeLayer, x, y, btn)
+        WINDOW.tool.tool_down(self.activeLayer, pos, btn)
         self.Refresh(False)
 
     def OnMotion(self, event):
         """ The onMotion handler function """
         global WINDOW
-        x = event.GetX()
-        y = event.GetY()
-        s = self.scale
-        status = str(int(x/s)) + "," + str(int(y/s))
+        scale = self.scale
+        pos = {"x": event.GetX() // scale, "y": event.GetY() // scale}
+        status = str(pos["x"]) + "," + str(pos["y"])
         WINDOW.statusBar.SetStatusText(status, 2)
         if event.Dragging():
             btn = "left"
             if event.RightIsDown():
                 btn = "right"
-            WINDOW.tool.ToolDragged(self.activeLayer, x//s, y//s, btn)
+            WINDOW.tool.tool_dragged(self.activeLayer, pos, btn)
             self.Refresh(False)
 
 
@@ -884,7 +907,8 @@ class MainWindow(wx.Frame):
         # used placeholder to indicate beginning of linkedlist
         self.command = DrawCommand(self)
         self.zoom = 10
-        self.tool = Pencil(self)
+        self.tool = None
+        #self.tool = Pencil(self)
 
         # create our components
         toolPane = ToolPane(self)
@@ -978,7 +1002,7 @@ class MainWindow(wx.Frame):
         self.SetAutoLayout(1)
         self.sizer.Fit(self)
         self.Show()
-        self.Maximize(True)
+        # self.Maximize(True)
 
         # set starting zoom level
         self.drawWindow.drawControl.SetZoom(self.zoom)
