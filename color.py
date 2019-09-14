@@ -15,7 +15,7 @@ class ActiveColor(wx.Control):
         self.foreground = [0, 0, 0, 255]
         self.background = [255, 255, 255, 255]
         self.Bind(wx.EVT_PAINT, self.on_paint)
-        window.activeColor = self
+        window.active_color = self
 
     #pylint: disable=unused-argument
 
@@ -178,7 +178,7 @@ class AlphaControl(ColorControl):
         graphics.DrawRectangle(0, 0, 10, 10)
         graphics.DrawRectangle(10, 10, 10, 10)
 
-        clr = getattr(self.window.activeColor, self.ground)
+        clr = getattr(self.window.active_color, self.ground)
         color = (clr[0], clr[1], clr[2], (self.color[3] | 63))
         if clr[0] + clr[1] + clr[2] == 0 and self.color[3] == 63:
             color = (0, 0, 0, 0)
@@ -211,9 +211,9 @@ class ColorPicker(wx.CollapsiblePane):
         self.window = parent
         self.ground = ground
         if ground == "foreground":
-            self.window.FGPicker = self
+            self.window.fg_picker = self
         else:
-            self.window.BGPicker = self
+            self.window.bg_picker = self
 
         self.reds = []
         self.greens = []
@@ -265,7 +265,7 @@ class ColorPicker(wx.CollapsiblePane):
         for item in items:
             setattr(item, 'selected', False)
             item.Refresh()
-        self.window.activeColor.Refresh()
+        self.window.active_color.Refresh()
 
         # When changing one of R,G,B the alphas column also needs updating
         if cname != 'alpha':
@@ -278,8 +278,8 @@ class ColorPicker(wx.CollapsiblePane):
             color: gives the color value to get the intensity from in order to
             select the correct gradient for this cname
             """
-        clr = getattr(self.window.activeColor, self.ground)
-        # this changes the value of ground inside activeColor!
+        clr = getattr(self.window.active_color, self.ground)
+        # this changes the value of ground inside active_color!
         if cname == 'red':
             clr[0] = color[0]
         elif cname == 'green':
@@ -288,7 +288,7 @@ class ColorPicker(wx.CollapsiblePane):
             clr[2] = color[2]
         else:
             clr[3] = color[3]
-        self.window.activeColor.check_transparant(self.ground)
+        self.window.active_color.check_transparant(self.ground)
 
     def update_color(self, color):
         """Changes the color for either background or foreground """
@@ -329,7 +329,7 @@ class SpectrumItem(wx.Control):
     def on_click(self, event, ground):
         """handler for clicking left or right on a spectrum item"""
         if event.ShiftDown():
-            clr = getattr(self.window.activeColor, ground)
+            clr = getattr(self.window.active_color, ground)
             self.color[0] = clr[0]
             self.color[1] = clr[1]
             self.color[2] = clr[2]
@@ -337,10 +337,10 @@ class SpectrumItem(wx.Control):
             self.Refresh()
         else:
             if ground == "foreground":
-                self.window.FGPicker.update_color(self.color)
+                self.window.fg_picker.update_color(self.color)
             else:
-                self.window.BGPicker.update_color(self.color)
-            self.window.activeColor.set_color(ground, self.color)
+                self.window.bg_picker.update_color(self.color)
+            self.window.active_color.set_color(ground, self.color)
 
     #pylint: disable=unused-argument
     def on_paint(self, event):

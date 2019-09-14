@@ -1,8 +1,8 @@
 """The main pixel art window, containing the DrawControl and MainWindow"""
-import png
 from array import array
-import wx
 import os
+import wx
+import png
 import tool
 import color as clr
 import command
@@ -11,40 +11,41 @@ import command
 class DrawControl(wx.Control):
     """ The DrawControl class contains the image which we are maniplulating  """
 
-    def __init__(self, parent, window, imageSize=(64, 64), color=(255, 255, 255, 255),
+    #pylint: disable-msg=too-many-arguments
+    def __init__(self, parent, window, image_size=(64, 64), color=(255, 255, 255, 255),
                  wxid=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize,
                  style=wx.BORDER_DEFAULT, validator=wx.DefaultValidator,
                  name="DrawControl"):
         """ Constructor for DrawControl """
         wx.Control.__init__(self, parent, wxid, pos, size,
                             style, validator, name)
-
         self.window = window
-        self.imageSize = imageSize
+        self.image_size = image_size
         # TODO add the ability to add, remove, show, and hide layers
         self.layers = []
         layer = wx.Bitmap.ConvertToImage(wx.Bitmap.FromRGBA(
-            imageSize[0], imageSize[1], 0, 0, 0, 0))
+            image_size[0], image_size[1], 0, 0, 0, 0))
         self.layers.append(layer)
-        self.activeLayer = layer
+        self.active_layer = layer
         self.color = color
-        self.scale = sc = 1
+        self.scale = scale = 1
         self.prev = None
-        self.GetParent().SetVirtualSize((imageSize[0] * sc, imageSize[1] * sc))
+        self.GetParent().SetVirtualSize(
+            (image_size[0] * scale, image_size[1] * scale))
         self.GetParent().SetScrollRate(1, 1)
 
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
-        self.Bind(wx.EVT_RIGHT_DOWN, self.OnClick)
-        self.Bind(wx.EVT_MIDDLE_DOWN, self.OnClick)
-        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_click)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.on_click)
+        self.Bind(wx.EVT_MIDDLE_DOWN, self.on_click)
+        self.Bind(wx.EVT_MOTION, self.on_motion)
         # self.SetCursor(wx.Cursor(wx.CURSOR_PENCIL))
 
     def _resize(self):
         """ Helper function used when when zooming or loading a new image """
-        imageSize = self.imageSize
-        sc = self.scale
-        wsize = (imageSize[0] * sc + 2, imageSize[1] * sc + 2)
+        image_size = self.image_size
+        wsize = (image_size[0] * self.scale + 2,
+                 image_size[1] * self.scale + 2)
         self.SetSize(wsize)
         self.SetMinSize(wsize)
         self.SetMaxSize(wsize)
@@ -52,123 +53,129 @@ class DrawControl(wx.Control):
         self.GetParent().SetScrollRate(1, 1)
         self.Refresh()
 
-    def _32to16(self, val):
-        """ Helper function used by lowerToBitDepth """
+    @classmethod
+    def _32to16(cls, val):
+        """ Helper function used by lower_to_bit_depth """
         base = val >> 4
         return (base << 4) + base
 
-    def _32to12(self, val):
-        """ Helper function used by lowerToBitDepth """
+    @classmethod
+    def _32to12(cls, val):
+        """ Helper function used by lower_to_bit_depth """
         base = val >> 5
         return (base << 5) + (base << 2) + (base >> 1)
 
-    def _32to8(self, val):
-        """ Helper function used by lowerToBitDepth """
+    @classmethod
+    def _32to8(cls, val):
+        """ Helper function used by lower_to_bit_depth """
         base = val >> 6
         return (base << 6) + (base << 4) + (base << 2) + base
 
-    def lowerToBitDepth(self, depth):
+    def lower_to_bit_depth(self, depth):
         """ Makes the image look like 16bit RGBA """
-        for x in range(self.imageSize[0]):
-            for y in range(self.imageSize[1]):
-                r = self.activeLayer.GetRed(x, y)
-                g = self.activeLayer.GetGreen(x, y)
-                b = self.activeLayer.GetBlue(x, y)
-                a = self.activeLayer.GetAlpha(x, y)
+        for x_pos in range(self.image_size[0]):
+            for y_pos in range(self.image_size[1]):
+                red = self.active_layer.GetRed(x_pos, y_pos)
+                green = self.active_layer.GetGreen(x_pos, y_pos)
+                blue = self.active_layer.GetBlue(x_pos, y_pos)
+                alpha = self.active_layer.GetAlpha(x_pos, y_pos)
                 method = getattr(self, "_32to"+str(depth))
-                r = method(r)
-                g = method(g)
-                b = method(b)
-                a = method(a)
-                self.activeLayer.SetRGB(x, y, r, g, b)
-                self.activeLayer.SetAlpha(x, y, a)
+                red = method(red)
+                green = method(green)
+                blue = method(blue)
+                alpha = method(alpha)
+                self.active_layer.SetRGB(x_pos, y_pos, red, green, blue)
+                self.active_layer.SetAlpha(x_pos, y_pos, alpha)
         self.Refresh(False)
 
-    def SetImage(self, img):
+    def set_image(self, img):
         """ Start using / displaying the provided image """
         self.layers = [img]
-        self.activeLayer = img
+        self.active_layer = img
         size = img.GetSize()
-        self.imageSize = (size.x, size.y)
-        self.lowerToBitDepth(8)
+        self.image_size = (size.x, size.y)
+        self.lower_to_bit_depth(8)
         self._resize()
 
-    def SetZoom(self, n):
+    def set_zoom(self, num):
         """ Zoom in or out to the provided scale """
-        self.scale = n
+        self.scale = num
         self._resize()
-        self.window.statusBar.SetStatusText("1:" + str(n), 1)
+        self.window.status_bar.SetStatusText("1:" + str(num), 1)
 
     #pylint: disable=unused-argument
-    def OnPaint(self, event):
+    def on_paint(self, event):
         """ The onPaint handler function """
-        dc = wx.PaintDC(self)
-        gc = wx.GraphicsContext.Create(dc)
-        nonePen = gc.CreatePen(wx.Pen(wx.Colour(0, 0, 0, 0)))
-        lightGreyBrush = gc.CreateBrush(wx.Brush((200, 200, 200, 255)))
-        darkGreyBrush = gc.CreateBrush(wx.Brush((100, 100, 100, 255)))
-        gc.SetPen(nonePen)
+        paint_dc = wx.PaintDC(self)
+        graphics = wx.GraphicsContext.Create(paint_dc)
+        none_pen = graphics.CreatePen(wx.Pen(wx.Colour(0, 0, 0, 0)))
+        light_grey_brush = graphics.CreateBrush(wx.Brush((200, 200, 200, 255)))
+        dark_grey_brush = graphics.CreateBrush(wx.Brush((100, 100, 100, 255)))
+        graphics.SetPen(none_pen)
 
-        (w, h) = self.GetClientSize()
-        for x in range(0, w, 20):
-            for y in range(0, h, 20):
-                gc.SetBrush(lightGreyBrush)
-                gc.DrawRectangle(x, y, 10, 10)
-                gc.DrawRectangle(x+10, y+10, 10, 10)
-                gc.SetBrush(darkGreyBrush)
-                gc.DrawRectangle(x+10, y, 10, 10)
-                gc.DrawRectangle(x, y+10, 10, 10)
+        (width, height) = self.GetClientSize()
+        for x_pos in range(0, width, 20):
+            for y_pos in range(0, height, 20):
+                graphics.SetBrush(light_grey_brush)
+                graphics.DrawRectangle(x_pos, y_pos, 10, 10)
+                graphics.DrawRectangle(x_pos+10, y_pos+10, 10, 10)
+                graphics.SetBrush(dark_grey_brush)
+                graphics.DrawRectangle(x_pos+10, y_pos, 10, 10)
+                graphics.DrawRectangle(x_pos, y_pos+10, 10, 10)
 
-        (iw, ih) = self.imageSize
-        sc = self.scale
-        dc = wx.PaintDC(self)
-        dc.DrawBitmap(
-            wx.Bitmap(self.activeLayer.Scale(iw * sc, ih * sc)), 0, 0)
+        (i_w, i_h) = self.image_size
+        paint_dc = wx.PaintDC(self)
+        paint_dc.DrawBitmap(
+            wx.Bitmap(self.active_layer.Scale(i_w * self.scale, i_h * self.scale)), 0, 0)
 
-    def OnClick(self, event):
+    def on_click(self, event):
         """ Generic event handler for left, right, middle """
         scale = self.scale
         pos = {"x": event.GetX() // scale, "y": event.GetY() // scale}
         btn = "left"
         if event.RightIsDown():
             btn = "right"
-        self.window.tool.tool_down(self.activeLayer, pos, btn)
+        self.window.tool.tool_down(self.active_layer, pos, btn)
         self.Refresh(False)
 
-    def OnMotion(self, event):
+    def on_motion(self, event):
         """ The onMotion handler function """
         scale = self.scale
         pos = {"x": event.GetX() // scale, "y": event.GetY() // scale}
         status = str(pos["x"]) + "," + str(pos["y"])
-        self.window.statusBar.SetStatusText(status, 2)
+        self.window.status_bar.SetStatusText(status, 2)
         if event.Dragging():
             btn = "left"
             if event.RightIsDown():
                 btn = "right"
-            self.window.tool.tool_dragged(self.activeLayer, pos, btn)
+            self.window.tool.tool_dragged(self.active_layer, pos, btn)
             self.Refresh(False)
 
 
+#pylint: disable=too-few-public-methods
 class DrawWindow(wx.ScrolledCanvas):
     """ The DrawControl plus horizontal and vertical scrolbars when needed """
 
+    #pylint: disable-msg=too-many-arguments
     def __init__(self, parent, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.BORDER_DEFAULT, name="DrawWindow"):
         wx.ScrolledCanvas.__init__(self, parent, wxid, pos, size, style, name)
 
-        self.drawControl = DrawControl(self, parent)
+        self.draw_control = DrawControl(self, parent)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.AddStretchSpacer()
-        sizer.Add(self.drawControl, 0, wx.CENTER)
+        sizer.Add(self.draw_control, 0, wx.CENTER)
         sizer.AddStretchSpacer()
         self.SetSizer(sizer)
         self.SetMinSize((800, 600))
         self.ShowScrollbars(wx.SHOW_SB_ALWAYS, wx.SHOW_SB_ALWAYS)
 
 
+#pylint: disable=too-many-ancestors
 class NewImageDialog(wx.Dialog):
     """ Dialog window for creating a new image """
 
+    #pylint: disable-msg=too-many-arguments
     def __init__(self, parent, wxid=wx.ID_ANY, title="New Image",
                  pos=wx.DefaultPosition, size=(250, 300), style=wx.BORDER_DEFAULT,
                  name="NewImageDialog"):
@@ -177,44 +184,49 @@ class NewImageDialog(wx.Dialog):
         self.width = wx.TextCtrl(self)
         self.height = wx.TextCtrl(self)
 
-        okButton = wx.Button(self, label='Ok', id=wx.ID_OK)
-        closeButton = wx.Button(self, label='Close', id=wx.ID_CLOSE)
+        ok_button = wx.Button(self, label='Ok', id=wx.ID_OK)
+        close_button = wx.Button(self, label='Close', id=wx.ID_CLOSE)
 
-        okButton.Bind(wx.EVT_BUTTON, self.OnOk)
-        closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+        ok_button.Bind(wx.EVT_BUTTON, self.on_ok)
+        close_button.Bind(wx.EVT_BUTTON, self.on_close)
 
         self.width.SetValue("64")
-        wBox = wx.BoxSizer(wx.HORIZONTAL)
-        wBox.Add(wx.StaticText(self, label="Width", size=(60, 40)))
-        wBox.Add(self.width)
+        w_box = wx.BoxSizer(wx.HORIZONTAL)
+        w_box.Add(wx.StaticText(self, label="Width", size=(60, 40)))
+        w_box.Add(self.width)
 
         self.height.SetValue("64")
-        hBox = wx.BoxSizer(wx.HORIZONTAL)
-        hBox.Add(wx.StaticText(self, label="Height", size=(60, 40)))
-        hBox.Add(self.height)
+        h_box = wx.BoxSizer(wx.HORIZONTAL)
+        h_box.Add(wx.StaticText(self, label="Height", size=(60, 40)))
+        h_box.Add(self.height)
 
-        btnSizer = wx.BoxSizer(wx.HORIZONTAL)
-        btnSizer.Add(okButton)
-        btnSizer.Add(closeButton)
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer.Add(ok_button)
+        btn_sizer.Add(close_button)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(wBox)
-        sizer.Add(hBox)
-        sizer.Add(btnSizer)
+        sizer.Add(w_box)
+        sizer.Add(h_box)
+        sizer.Add(btn_sizer)
         sizer.Fit(self)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(1)
         self.Show()
 
-    def OnClose(self, e):
+    #pylint: disable=unused-argument
+    def on_close(self, event):
+        "What to do when asked to close the dialog"
         self.Destroy()
 
-    def OnOk(self, e):
-        w = int(self.width.GetValue())
-        h = int(self.height.GetValue())
-        img = wx.Bitmap.ConvertToImage(wx.Bitmap.FromRGBA(w, h, 0, 0, 0, 0))
-        self.GetParent().drawWindow.drawControl.SetImage(img)
+    #pylint: disable=unused-argument
+    def on_ok(self, event):
+        "What to do when they say yes to making a new image"
+        width = int(self.width.GetValue())
+        height = int(self.height.GetValue())
+        img = wx.Bitmap.ConvertToImage(
+            wx.Bitmap.FromRGBA(width, height, 0, 0, 0, 0))
+        self.GetParent().draw_window.draw_control.set_image(img)
         self.Destroy()
 
 
@@ -223,9 +235,9 @@ class MainWindow(wx.Frame):
 
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title)
-        self.activeColor = None
-        self.FGPicker = None
-        self.BGPicker = None
+        self.active_color = None
+        self.fg_picker = None
+        self.bg_picker = None
         self.spectrum = None
 
         self.filename = ''
@@ -237,91 +249,93 @@ class MainWindow(wx.Frame):
         self.tool = None
 
         # create our components
-        toolPane = tool.ToolPane(self)
-        activeColorPane = clr.ActiveColorPane(self)
-        foreground = clr.ColorPicker(self, color=self.activeColor.foreground,
+        tool_pane = tool.ToolPane(self)
+        active_color_pane = clr.ActiveColorPane(self)
+        foreground = clr.ColorPicker(self, color=self.active_color.foreground,
                                      ground="foreground", label="FG")
-        background = clr.ColorPicker(self, color=self.activeColor.background,
+        background = clr.ColorPicker(self, color=self.active_color.background,
                                      ground="background", label="BG")
-        colorSpectrum = clr.ColorSpectrum(self)
-        self.drawWindow = DrawWindow(self)
+        color_spectrum = clr.ColorSpectrum(self)
+        self.draw_window = DrawWindow(self)
 
         # create a statusbar
-        self.statusBar = self.CreateStatusBar(3)
+        self.status_bar = self.CreateStatusBar(3)
         self.SetStatusWidths([-1, 50, 100])
 
         # Setting up the menu.
         filemenu = wx.Menu()
-        menuNew = filemenu.Append(wx.ID_NEW, "&New", "Create a new image")
-        menuOpen = filemenu.Append(wx.ID_OPEN, "&Open", " Open a file to edit")
-        menuSave = filemenu.Append(wx.ID_SAVE, "&Save", "Save to file")
-        menuSaveAs = filemenu.Append(
+        menu_new = filemenu.Append(wx.ID_NEW, "&New", "Create a new image")
+        menu_open = filemenu.Append(
+            wx.ID_OPEN, "&Open", " Open a file to edit")
+        menu_save = filemenu.Append(wx.ID_SAVE, "&Save", "Save to file")
+        menu_save_as = filemenu.Append(
             wx.ID_SAVEAS, "Save As", "Save to specified file")
-        menuAbout = filemenu.Append(wx.ID_ABOUT, "&About",
-                                    " Information about this program")
-        menuExit = filemenu.Append(
+        menu_about = filemenu.Append(wx.ID_ABOUT, "&About",
+                                     " Information about this program")
+        menu_exit = filemenu.Append(
             wx.ID_EXIT, "E&xit", " Terminate the program")
 
-        editMenu = wx.Menu()
-        self.menuUndo = editMenu.Append(
+        edit_menu = wx.Menu()
+        self.menu_undo = edit_menu.Append(
             wx.ID_UNDO, "&Undo", "Undo an operation")
-        self.menuRedo = editMenu.Append(
+        self.menu_redo = edit_menu.Append(
             wx.ID_REDO, "&Redo", "Redo an operation")
-        self.menuUndo.Enable(False)
-        self.menuRedo.Enable(False)
+        self.menu_undo.Enable(False)
+        self.menu_redo.Enable(False)
 
         # Create a view menu
-        viewMenu = wx.Menu()
-        self.zoomIn = viewMenu.Append(wx.ID_ZOOM_IN, "Zoom &In", "Zoom In")
-        self.zoomOut = viewMenu.Append(wx.ID_ZOOM_OUT, "Zoom &Out", "Zoom Out")
+        view_menu = wx.Menu()
+        self.zoom_in = view_menu.Append(wx.ID_ZOOM_IN, "Zoom &In", "Zoom In")
+        self.zoom_out = view_menu.Append(
+            wx.ID_ZOOM_OUT, "Zoom &Out", "Zoom Out")
 
         # Creating the menubar.
-        menuBar = wx.MenuBar()
+        menu_bar = wx.MenuBar()
         # Adding the "filemenu" to the MenuBar
-        menuBar.Append(filemenu, "&File")
-        menuBar.Append(editMenu, "&Edit")
-        menuBar.Append(viewMenu, "&View")
-        self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
+        menu_bar.Append(filemenu, "&File")
+        menu_bar.Append(edit_menu, "&Edit")
+        menu_bar.Append(view_menu, "&View")
+        self.SetMenuBar(menu_bar)  # Adding the MenuBar to the Frame content.
 
         # create keyboard shortcuts
         entries = [wx.AcceleratorEntry() for i in range(4)]
-        entries[0].Set(wx.ACCEL_CTRL, ord('Z'), wx.ID_UNDO, self.menuUndo)
-        entries[1].Set(wx.ACCEL_CTRL, ord('Y'), wx.ID_REDO, self.menuRedo)
-        entries[2].Set(wx.ACCEL_CTRL, ord('='), wx.ID_ZOOM_IN, self.zoomIn)
-        entries[3].Set(wx.ACCEL_CTRL, ord('-'), wx.ID_ZOOM_OUT, self.zoomOut)
-        self.menuUndo.SetAccel(entries[0])
-        self.menuRedo.SetAccel(entries[1])
-        self.zoomIn.SetAccel(entries[2])
-        self.zoomOut.SetAccel(entries[3])
+        entries[0].Set(wx.ACCEL_CTRL, ord('Z'), wx.ID_UNDO, self.menu_undo)
+        entries[1].Set(wx.ACCEL_CTRL, ord('Y'), wx.ID_REDO, self.menu_redo)
+        entries[2].Set(wx.ACCEL_CTRL, ord('='), wx.ID_ZOOM_IN, self.zoom_in)
+        entries[3].Set(wx.ACCEL_CTRL, ord('-'), wx.ID_ZOOM_OUT, self.zoom_out)
+        self.menu_undo.SetAccel(entries[0])
+        self.menu_redo.SetAccel(entries[1])
+        self.zoom_in.SetAccel(entries[2])
+        self.zoom_out.SetAccel(entries[3])
 
         accel = wx.AcceleratorTable(entries)
         self.SetAcceleratorTable(accel)
 
         # Events.
-        self.Bind(wx.EVT_MENU, self.OnNew, menuNew)
-        self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
-        self.Bind(wx.EVT_MENU, self.OnSave, menuSave)
-        self.Bind(wx.EVT_MENU, self.OnSaveAs, menuSaveAs)
-        self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
-        self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
-        self.Bind(wx.EVT_MENU, self.OnUndo, self.menuUndo)
-        self.Bind(wx.EVT_MENU, self.OnRedo, self.menuRedo)
-        self.Bind(wx.EVT_MENU, self.OnZoomIn, self.zoomIn)
-        self.Bind(wx.EVT_MENU, self.OnZoomOut, self.zoomOut)
+        self.Bind(wx.EVT_MENU, self.on_new, menu_new)
+        self.Bind(wx.EVT_MENU, self.on_open, menu_open)
+        self.Bind(wx.EVT_MENU, self.on_save, menu_save)
+        self.Bind(wx.EVT_MENU, self.on_save_as, menu_save_as)
+        self.Bind(wx.EVT_MENU, self.on_exit, menu_exit)
+        self.Bind(wx.EVT_MENU, self.on_about, menu_about)
+        self.Bind(wx.EVT_MENU, self.on_undo, self.menu_undo)
+        self.Bind(wx.EVT_MENU, self.on_redo, self.menu_redo)
+        self.Bind(wx.EVT_MENU, self.on_zoom_in, self.zoom_in)
+        self.Bind(wx.EVT_MENU, self.on_zoom_out, self.zoom_out)
 
         # Use some sizers to see layout options
         vert1 = wx.BoxSizer(wx.VERTICAL)
-        vert1.Add(toolPane, 0, wx.ALIGN_TOP)
-        vert1.Add(activeColorPane, 0, wx.ALIGN_TOP)
+        vert1.Add(tool_pane, 0, wx.ALIGN_TOP)
+        vert1.Add(active_color_pane, 0, wx.ALIGN_TOP)
         vert1.Add(foreground, 0, wx.ALIGN_TOP)
         vert1.Add(background, 0, wx.ALIGN_TOP)
-        vert1.Add(colorSpectrum, 0, wx.ALIGN_TOP)
+        vert1.Add(color_spectrum, 0, wx.ALIGN_TOP)
 
-        sz = wx.BoxSizer(wx.VERTICAL)
-        sz.Add(self.drawWindow, 1, wx.EXPAND)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.draw_window, 1, wx.EXPAND)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer.Add(vert1, 0)
-        self.sizer.Add(sz, 1)
+        self.sizer.Add(sizer, 1)
 
         # Layout sizers
         self.SetSizer(self.sizer)
@@ -331,18 +345,21 @@ class MainWindow(wx.Frame):
         # self.Maximize(True)
 
         # set starting zoom level
-        self.drawWindow.drawControl.SetZoom(self.zoom)
-        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.draw_window.draw_control.set_zoom(self.zoom)
+        self.Bind(wx.EVT_SIZE, self.on_size)
 
         self.SetIcon(wx.Icon("test.ico"))
 
-    def OnNew(self, e):
+    #pylint: disable=unused-argument
+    def on_new(self, event):
+        "What to do when the user wants to open the new image dialog"
         # TODO create a custom dialog, as shown at:http://zetcode.com/wxpython/dialogs/
         dlg = NewImageDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
 
-    def OnOpen(self, e):
+    #pylint: disable=unused-argument
+    def on_open(self, event):
         """ Open an image file and display it """
         dlg = wx.FileDialog(self, "Choose a file", self.dirname, "",
                             "*.*", wx.FD_OPEN)
@@ -352,10 +369,11 @@ class MainWindow(wx.Frame):
             img = wx.Image(os.path.join(dirname, filename))
             if not img.HasAlpha():
                 img.InitAlpha()
-            self.drawWindow.drawControl.SetImage(img)
+            self.draw_window.draw_control.set_image(img)
         dlg.Destroy()
 
-    def OnAbout(self, e):
+    #pylint: disable=unused-argument
+    def on_about(self, event):
         # TODO use a wx.AboutBox instead, as shown: http://zetcode.com/wxpython/dialogs/
         """ The onAbout handler, shows the about dialog """
         # Create a message dialog box
@@ -364,27 +382,31 @@ class MainWindow(wx.Frame):
         dlg.ShowModal()  # Shows it
         dlg.Destroy()  # finally destroy it when finished.
 
-    def _Save(self, filename):
-        img = self.drawWindow.drawControl.activeLayer
+    def _save(self, filename):
+        "general save handling code"
+        img = self.draw_window.draw_control.active_layer
         data = list()
 
-        for y in range(img.GetHeight()):
+        for y_pos in range(img.GetHeight()):
             line = array("B")
-            for x in range(img.GetWidth()):
-                line.append(img.GetRed(x, y))
-                line.append(img.GetGreen(x, y))
-                line.append(img.GetBlue(x, y))
-                line.append(img.GetAlpha(x, y))
+            for x_pos in range(img.GetWidth()):
+                line.append(img.GetRed(x_pos, y_pos))
+                line.append(img.GetGreen(x_pos, y_pos))
+                line.append(img.GetBlue(x_pos, y_pos))
+                line.append(img.GetAlpha(x_pos, y_pos))
             data.append(line)
 
         png.from_array(data, "RGBA").save(filename)
 
-    def OnSave(self, e):
+    #pylint: disable=unused-argument
+    def on_save(self, event):
+        "on save handler"
         if not self.filename:
-            return self.OnSaveAs(e)
-        self._Save(self.filename)
+            return self.on_saveAs(event)
+        self._save(self.filename)
 
-    def OnSaveAs(self, e):
+    #pylint: disable=unused-argument
+    def on_save_as(self, event):
         """ Create and show the save dialog """
         dlg = wx.FileDialog(self, message="Save file as ...",
                             defaultDir=self.dirname, defaultFile="",
@@ -395,68 +417,81 @@ class MainWindow(wx.Frame):
             self.dirname = dlg.GetDirectory()
             if not self.filename.endswith(".png"):
                 self.filename += ".png"
-            self._Save(self.filename)
+            self._save(self.filename)
 
-    def OnExit(self, e):
+    #pylint: disable=unused-argument
+    def on_exit(self, event):
         """ The onExit handler """
         self.Close(True)  # Close the frame.
 
-    def OnUndo(self, e):
+    #pylint: disable=unused-argument
+    def on_undo(self, event):
+        "on undo handler"
         if self.command.target != self:
             self.command.revoke()
             self.command = self.command.parent
             if self.command.target == self:
-                self.menuUndo.Enable(False)
-            self.menuRedo.Enable(True)
-            self.drawWindow.Refresh()
+                self.menu_undo.Enable(False)
+            self.menu_redo.Enable(True)
+            self.draw_window.Refresh()
 
-    def OnRedo(self, e):
+    #pylint: disable=unused-argument
+    def on_redo(self, event):
+        "on redo handler"
         if len(self.command.children) >= 1:
             child = self.command.children[-1]
             child.invoke()
             self.command = child
-            if len(child.children) == 0:
-                self.menuRedo.Enable(False)
-            self.menuUndo.Enable(True)
-            self.drawWindow.Refresh()
+            if not child.children:
+                self.menu_redo.Enable(False)
+            self.menu_undo.Enable(True)
+            self.draw_window.Refresh()
 
-    def OnZoomIn(self, e):
+    #pylint: disable=unused-argument
+    def on_zoom_in(self, event):
+        "on zoom in handler"
         if self.zoom < 10:
             self.zoom += 1
-            self.drawWindow.drawControl.SetZoom(self.zoom)
+            self.draw_window.draw_control.set_zoom(self.zoom)
             if self.zoom == 10:
-                self.zoomIn.Enable(False)
-            self.zoomOut.Enable(True)
+                self.zoom_in.Enable(False)
+            self.zoom_out.Enable(True)
 
-    def OnZoomOut(self, e):
+    #pylint: disable=unused-argument
+    def on_zoom_out(self, event):
+        "on zoom out handler"
         if self.zoom > 1:
             self.zoom -= 1
-            self.drawWindow.drawControl.SetZoom(self.zoom)
+            self.draw_window.draw_control.set_zoom(self.zoom)
             if self.zoom == 1:
-                self.zoomOut.Enable(False)
-            self.zoomIn.Enable(True)
+                self.zoom_out.Enable(False)
+            self.zoom_in.Enable(True)
 
-    def AddCommand(self, command):
-        command.parent = self.command
-        self.command.children.append(command)
-        self.command = command
-        self.menuUndo.Enable(True)
-        self.menuRedo.Enable(False)
+    #pylint: disable=unused-argument
+    def add_command(self, cmd):
+        "add a command to the undo / redo tree"
+        cmd.parent = self.command
+        self.command.children.append(cmd)
+        self.command = cmd
+        self.menu_undo.Enable(True)
+        self.menu_redo.Enable(False)
 
-    def OnSize(self, event):
-        (w, h) = self.GetClientSize()
-        # FIXME magic number (size of other controls)
-        self.drawWindow.SetSize((w - 80, h))
+    #pylint: disable=unused-argument
+    def on_size(self, event):
+        "on window resize handler"
+        (width, height) = self.GetClientSize()
+        # magic number 80 == (size of other controls)
+        self.draw_window.SetSize((width - 80, height))
 
-    def LowerToBitDepth(self, n):
-        """ returns menu item handler to call lowerToBitDepth of given value"""
-        return lambda e: self.drawWindow.drawControl.lowerToBitDepth(n)
+    def lower_to_bit_depth(self, depth):
+        """ returns menu item handler to call lower_to_bit_depth of given value"""
+        return lambda e: self.draw_window.draw_control.lower_to_bit_depth(depth)
 
 
 def main():
     """ The main function, that starts the program """
     app = wx.App(False)
-    frame = MainWindow(None, "Pixel Art")
+    MainWindow(None, "Pixel Art")
     app.MainLoop()
 
 

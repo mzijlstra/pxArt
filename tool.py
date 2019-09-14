@@ -28,9 +28,9 @@ class Pencil(wx.Control):
     def tool_down(self, image, pos, btn):
         "adds a pixel to the image and creates an undo command"
         if btn == "left":
-            color = self.window.activeColor.foreground
+            color = self.window.active_color.foreground
         elif btn == "right":
-            color = self.window.activeColor.background
+            color = self.window.active_color.background
         self.prev = pos
         # a new command everytime we click
         self.command = command.DrawCommand(image)
@@ -40,15 +40,15 @@ class Pencil(wx.Control):
         c_a = image.GetAlpha(pos["x"], pos["y"])
         self.command.add_pixel_mod(
             command.PixelMod(pos, (c_r, c_g, c_b, c_a), color))
-        self.window.AddCommand(self.command)
+        self.window.add_command(self.command)
         self.command.invoke()
 
     def tool_dragged(self, image, pos, btn):
         "draws a line when on the image, adds to the exisiting undo command"
         if btn == "left":
-            color = self.window.activeColor.foreground
+            color = self.window.active_color.foreground
         elif btn == "right":
-            color = self.window.activeColor.background
+            color = self.window.active_color.background
         self.plot_line(image, color, self.prev, pos)
         self.prev = pos
 
@@ -147,16 +147,16 @@ class BucketFill(wx.Control):
         """bucket fill when image is clicked,
            breadth first search fill all pixels of the same color"""
         if btn == "left":
-            color = self.window.activeColor.foreground
+            color = self.window.active_color.foreground
         elif btn == "right":
-            color = self.window.activeColor.background
+            color = self.window.active_color.background
         # a new command everytime we click
         self.command = command.DrawCommand(image)
         red = image.GetRed(pos["x"], pos["y"])
         green = image.GetGreen(pos["x"], pos["y"])
         blue = image.GetBlue(pos["x"], pos["y"])
         alpha = image.GetAlpha(pos["x"], pos["y"])
-        self.window.AddCommand(self.command)
+        self.window.add_command(self.command)
         # breath first search replacing all surrounding pixels with the same color
         width = image.GetWidth()
         height = image.GetHeight()
@@ -219,8 +219,8 @@ class BucketFill(wx.Control):
 #pylint: disable=too-few-public-methods
 class ToolPane(wx.CollapsiblePane):
     "The panel that displays all the tool icons"
-    #pylint: disable-msg=too-many-arguments
 
+    #pylint: disable-msg=too-many-arguments
     def __init__(self, parent, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.NO_BORDER,
                  validator=wx.DefaultValidator, name="ToolPane"):
