@@ -8,21 +8,30 @@ import command
 class Pencil(wx.Control):
     "The Pencil Tool for used for drawing"
 
-    #pylint: disable-msg=too-many-arguments
+    # pylint: disable-msg=too-many-arguments
     def __init__(self, parent, window, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=(40, 40), style=wx.NO_BORDER, validator=wx.DefaultValidator,
                  name="Pencil"):
         wx.Control.__init__(self, parent, wxid, pos, size,
                             style, validator, name)
-        wx.StaticText(self, label="Pen", pos=(0, 0))
+        # wx.StaticText(self, label="Pen", pos=(0, 0))
+        self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
         self.window = window
+        self.icon = wx.Bitmap(wx.Image("icons/pencil2.png"))
         self.prev = None
         self.command = None
 
-    #pylint: disable=unused-argument
+    # pylint: disable=unused-argument
+    def on_paint(self, event):
+        "What this control should look like"
+        paint_dc = wx.PaintDC(self)
+        paint_dc.DrawBitmap(self.icon, 4, 4)
+
+    # pylint: disable=unused-argument
     def on_left_click(self, event):
         "handles left clicks on the tool"
+        print("pen time!")
         self.window.tool = self
 
     def tool_down(self, image, pos, btn):
@@ -125,24 +134,32 @@ class Pencil(wx.Control):
 class BucketFill(wx.Control):
     """The bucket fill tool, allowing you to flood fill an area"""
 
-    #pylint: disable-msg=too-many-arguments
+    # pylint: disable-msg=too-many-arguments
     def __init__(self, parent, window, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=(40, 40), style=wx.NO_BORDER, validator=wx.DefaultValidator,
                  name="BucketFill"):
         wx.Control.__init__(self, parent, wxid, pos,
                             size, style, validator, name)
-        wx.StaticText(self, label="Fill", pos=(0, 0))
+        #wx.StaticText(self, label="Fill", pos=(0, 0))
+        self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
         self.window = window
+        self.icon = wx.Bitmap(wx.Image("icons/bucket4.png"))
         self.command = None
 
-    #pylint: disable=unused-argument
+    # pylint: disable=unused-argument
+    def on_paint(self, event):
+        "What this control should look like"
+        paint_dc = wx.PaintDC(self)
+        paint_dc.DrawBitmap(self.icon, 4, 4)
+
+    # pylint: disable=unused-argument
     def on_left_click(self, event):
         "on left click handler onto tool icon"
         print("bucket fill time!")
         self.window.tool = self
 
-    #pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     def tool_down(self, image, pos, btn):
         """bucket fill when image is clicked,
            breadth first search fill all pixels of the same color"""
@@ -216,11 +233,11 @@ class BucketFill(wx.Control):
         "no functionality for dragging bucket fill"
 
 
-#pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods
 class ToolPane(wx.CollapsiblePane):
     "The panel that displays all the tool icons"
 
-    #pylint: disable-msg=too-many-arguments
+    # pylint: disable-msg=too-many-arguments
     def __init__(self, parent, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.NO_BORDER,
                  validator=wx.DefaultValidator, name="ToolPane"):
@@ -242,7 +259,7 @@ class ToolPane(wx.CollapsiblePane):
         # don't start collapsed
         self.Expand()
 
-    #pylint: disable=unused-argument
+    # pylint: disable=unused-argument
     def on_change(self, event):
         "Called when switching between collapsed and non-collapsed state"
         self.GetParent().Layout()

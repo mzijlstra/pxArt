@@ -1,4 +1,4 @@
-"""The main pixel art window, containing the DrawControl and MainWindow"""
+"""The main pixel art window, containing the DrawControl and MainWindow classes"""
 from array import array
 import os
 import wx
@@ -241,7 +241,7 @@ class MainWindow(wx.Frame):
         self.spectrum = None
 
         self.filename = ''
-        self.dirname = os.environ['HOME']
+        self.dirname = os.environ['HOME'] + "/Pictures/"
         # used placeholder to indicate beginning of linkedlist
         self.command = command.DrawCommand(self)
         self.zoom = 10
@@ -348,7 +348,7 @@ class MainWindow(wx.Frame):
         self.draw_window.draw_control.set_zoom(self.zoom)
         self.Bind(wx.EVT_SIZE, self.on_size)
 
-        self.SetIcon(wx.Icon("test.ico"))
+        self.SetIcon(wx.Icon("icons/ferdinand3.png"))
 
     #pylint: disable=unused-argument
     def on_new(self, event):
@@ -402,7 +402,7 @@ class MainWindow(wx.Frame):
     def on_save(self, event):
         "on save handler"
         if not self.filename:
-            return self.on_saveAs(event)
+            return self.on_save_as(event)
         self._save(self.filename)
 
     #pylint: disable=unused-argument

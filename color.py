@@ -18,7 +18,6 @@ class ActiveColor(wx.Control):
         window.active_color = self
 
     #pylint: disable=unused-argument
-
     def on_paint(self, event):
         "The actions to take to repaint this area of the screen"
         paint_dc = wx.PaintDC(self)
@@ -150,8 +149,8 @@ class ColorControl(wx.Control):
 
 class AlphaControl(ColorControl):
     """ The alpha control is a color control, but then for alpha values """
+    
     #pylint: disable-msg=too-many-arguments
-
     def __init__(self, parent, owner, cname, color=(0, 0, 0),
                  ground="foreground", wxid=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=(20, 20), style=wx.NO_BORDER, validator=wx.DefaultValidator,
