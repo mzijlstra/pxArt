@@ -1,6 +1,7 @@
 """These are the different tools used to manipulate an image,
 currently including a Pencil and Bucketfill"""
 
+from collections import deque
 import wx
 import command
 
@@ -65,11 +66,13 @@ class Pencil(wx.Control):
         "Bresenham's line plotting algorithm as found on wikipedia"
         if abs(pos1["y"] - pos0["y"]) < abs(pos1["x"] - pos0["x"]):
             if pos0["x"] > pos1["x"]:
+                # pylint: disable=arguments-out-of-order
                 self.plot_line_low(image, color, pos1, pos0)
             else:
                 self.plot_line_low(image, color, pos0, pos1)
         else:
             if pos0["y"] > pos1["y"]:
+                # pylint: disable=arguments-out-of-order
                 self.plot_line_high(image, color, pos1, pos0)
             else:
                 self.plot_line_high(image, color, pos0, pos1)
@@ -177,7 +180,6 @@ class BucketFill(wx.Control):
         # breath first search replacing all surrounding pixels with the same color
         width = image.GetWidth()
         height = image.GetHeight()
-        from collections import deque
         queue = deque([(pos["x"], pos["y"])])
         done = {}
         while queue:
