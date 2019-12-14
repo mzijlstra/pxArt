@@ -255,7 +255,6 @@ class MainWindow(wx.Frame):
                                      ground="foreground", label="FG")
         background = clr.ColorPicker(self, color=self.active_color.background,
                                      ground="background", label="BG")
-        color_spectrum = clr.ColorSpectrum(self)
         self.draw_window = DrawWindow(self)
 
         # create a statusbar
@@ -329,7 +328,6 @@ class MainWindow(wx.Frame):
         vert1.Add(active_color_pane, 0, wx.ALIGN_TOP)
         vert1.Add(foreground, 0, wx.ALIGN_TOP)
         vert1.Add(background, 0, wx.ALIGN_TOP)
-        vert1.Add(color_spectrum, 0, wx.ALIGN_TOP)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.draw_window, 1, wx.EXPAND)

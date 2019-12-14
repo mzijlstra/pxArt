@@ -32,7 +32,6 @@ class Pencil(wx.Control):
     # pylint: disable=unused-argument
     def on_left_click(self, event):
         "handles left clicks on the tool"
-        print("pen time!")
         self.window.tool = self
 
     def tool_down(self, image, pos, btn):
@@ -159,7 +158,6 @@ class BucketFill(wx.Control):
     # pylint: disable=unused-argument
     def on_left_click(self, event):
         "on left click handler onto tool icon"
-        print("bucket fill time!")
         self.window.tool = self
 
     # pylint: disable=too-many-locals

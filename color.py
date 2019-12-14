@@ -98,7 +98,7 @@ class ActiveColorPane(wx.CollapsiblePane):
 
 class ColorControl(wx.Control):
     """ Color control class represents a clickable square where each instance
-        represents one of 16 shades of the given color """
+        represents one of 8 shades of the given color """
 
     #pylint: disable-msg=too-many-arguments
     def __init__(self, parent, owner, cname, color=(0, 0, 0), ground="foreground",
@@ -145,6 +145,7 @@ class ColorControl(wx.Control):
         self.owner.clear_selection(self.cname)
         self.owner.select(self.cname, self.color)
         self.selected = True
+        print(self.color)
 
 
 class AlphaControl(ColorControl):
@@ -223,8 +224,8 @@ class ColorPicker(wx.CollapsiblePane):
         green_sizer = wx.BoxSizer(wx.VERTICAL)
         blue_sizer = wx.BoxSizer(wx.VERTICAL)
         alpha_sizer = wx.BoxSizer(wx.VERTICAL)
-        for i in range(0, 4):
-            val = 255 - i * 85
+        for i in range(0, 8):
+            val = (i << 5) + (i << 2) + (i >> 1)
             self.reds.append(ColorControl(
                 pane, self, 'red', (val, 0, 0, 255), ground))
             self.greens.append(ColorControl(
@@ -232,16 +233,16 @@ class ColorPicker(wx.CollapsiblePane):
             self.blues.append(ColorControl(
                 pane, self, 'blue', (0, 0, val, 255), ground))
             self.alphas.append(AlphaControl(
-                pane, self, 'alpha', (0, 0, 0, val | 63), ground))
+                pane, self, 'alpha', (0, 0, 0, val), ground))
             red_sizer.Add(self.reds[i], 1, wx.SHAPED)
             green_sizer.Add(self.greens[i], 1, wx.SHAPED)
             blue_sizer.Add(self.blues[i], 1, wx.SHAPED)
             alpha_sizer.Add(self.alphas[i], 1, wx.SHAPED)
 
-        self.reds[3 - (color[0] >> 6)].selected = True
-        self.greens[3 - (color[1] >> 6)].selected = True
-        self.blues[3 - (color[2] >> 6)].selected = True
-        self.alphas[3 - (color[3] >> 6)].selected = True
+        self.reds[(color[0] >> 5)].selected = True
+        self.greens[(color[1] >> 5)].selected = True
+        self.blues[(color[2] >> 5)].selected = True
+        self.alphas[(color[3] >> 5)].selected = True
 
         colors = wx.BoxSizer(wx.HORIZONTAL)
         colors.Add(red_sizer)
