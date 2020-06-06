@@ -94,7 +94,7 @@ class DrawControl(wx.Control):
         self.active_layer = img
         size = img.GetSize()
         self.image_size = (size.x, size.y)
-        self.lower_to_bit_depth(8)
+        self.lower_to_bit_depth(12)
         self._resize()
 
     def set_zoom(self, num):
