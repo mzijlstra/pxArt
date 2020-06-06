@@ -145,7 +145,6 @@ class ColorControl(wx.Control):
         self.owner.clear_selection(self.cname)
         self.owner.select(self.cname, self.color)
         self.selected = True
-        print(self.color)
 
 
 class AlphaControl(ColorControl):
@@ -195,7 +194,7 @@ class AlphaControl(ColorControl):
             graphics.DrawRectangle(0, 0, 19, 19)
 
 
-class ColorPicker(wx.CollapsiblePane):
+class ColorChooser(wx.CollapsiblePane):
     """ This is the combination of red, green, blue, alpha ColorControls"""
 
     #pylint: disable-msg=too-many-arguments
@@ -300,103 +299,3 @@ class ColorPicker(wx.CollapsiblePane):
         self.blues[3 - (color[2] >> 6)].selected = True
         self.alphas[3 - (color[3] >> 6)].selected = True
         self.Refresh()
-
-
-class SpectrumItem(wx.Control):
-    """ SpectrumItem stores a specific color (combination of selected
-        red, green, blue, and alpha values). """
-
-    #pylint: disable-msg=too-many-arguments
-    def __init__(self, parent, window, color=(0, 0, 0, 0), wxid=wx.ID_ANY,
-                 pos=wx.DefaultPosition, size=(10, 10), style=wx.NO_BORDER,
-                 validator=wx.DefaultValidator, name="SpectrumItem"):
-
-        wx.Control.__init__(self, parent, wxid, pos, size,
-                            style, validator, name)
-        self.window = window
-        self.SetInitialSize(size)
-        self.color = color
-
-        self.Bind(wx.EVT_PAINT, self.on_paint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.select("foreground"))
-        self.Bind(wx.EVT_RIGHT_DOWN, self.select("background"))
-
-    def select(self, ground):
-        """Get/Set foreground/background based on mouse button pressed """
-        return lambda e: self.on_click(e, ground)
-
-    def on_click(self, event, ground):
-        """handler for clicking left or right on a spectrum item"""
-        if event.ShiftDown():
-            clr = getattr(self.window.active_color, ground)
-            self.color[0] = clr[0]
-            self.color[1] = clr[1]
-            self.color[2] = clr[2]
-            self.color[3] = clr[3]
-            self.Refresh()
-        else:
-            if ground == "foreground":
-                self.window.fg_picker.update_color(self.color)
-            else:
-                self.window.bg_picker.update_color(self.color)
-            self.window.active_color.set_color(ground, self.color)
-
-    #pylint: disable=unused-argument
-    def on_paint(self, event):
-        """ Draws its color """
-        paint_dc = wx.PaintDC(self)
-        graphics = wx.GraphicsContext.Create(paint_dc)
-        light_grey_brush = graphics.CreateBrush(wx.Brush((200, 200, 200, 255)))
-        dark_grey_brush = graphics.CreateBrush(wx.Brush((100, 100, 100, 255)))
-
-        graphics.SetBrush(dark_grey_brush)
-        graphics.DrawRectangle(0, 0, 10, 10)
-        graphics.SetBrush(light_grey_brush)
-        graphics.DrawRectangle(0, 0, 5, 5)
-        graphics.DrawRectangle(5, 5, 5, 5)
-
-        graphics.SetBrush(graphics.CreateBrush(wx.Brush(self.color)))
-        graphics.DrawRectangle(0, 0, 10, 10)
-
-
-class ColorSpectrum(wx.CollapsiblePane):
-    """ This class contains 256 SpectrumItems """
-
-    def __init__(self, parent, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
-                 size=wx.DefaultSize, style=wx.NO_BORDER,
-                 validator=wx.DefaultValidator, name="ColorSpectrum"):
-        """ Contructor for the ColorSpectrum """
-        wx.CollapsiblePane.__init__(self, parent, wxid, "Spectrum", pos, size,
-                                    style, validator, name)
-        self.window = parent
-        self.window.spectrum = self
-        self.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_change)
-
-        pane = self.GetPane()
-        items = []
-        for alpha in range(0, 4):
-            for green in range(0, 4):
-                for blue in range(0, 4, 2):
-                    for red in range(0, 4):
-                        items.append(SpectrumItem(
-                            pane, self.window, [red*85, green*85, blue*85, alpha*85 | 63]))
-                        items.append(SpectrumItem(
-                            pane, self.window, [red*85, green*85, (blue+1)*85, alpha*85 | 63]))
-
-        # make full black, lowest alpha fully transparant
-        items[0].color[3] = 0
-
-        rows = wx.BoxSizer(wx.VERTICAL)
-        for y_pos in range(0, 32):
-            cols = wx.BoxSizer(wx.HORIZONTAL)
-            for x_pos in range(0, 8):
-                cols.Add(items[y_pos * 8 + x_pos])
-            rows.Add(cols)
-
-        pane.SetSizer(rows)
-        # self.Expand()
-
-    #pylint: disable=unused-argument
-    def on_change(self, event):
-        "The code to execute when collapsing or uncollapsing"
-        self.GetParent().Layout()

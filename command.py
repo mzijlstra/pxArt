@@ -1,6 +1,5 @@
 "Undo / Redo Command module"
 
-# TODO remove this class, just use a map instead!
 #pylint: disable-msg=too-few-public-methods
 class PixelMod:
     """ Pixel modification class used by DrawCommand class """

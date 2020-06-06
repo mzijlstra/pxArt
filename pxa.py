@@ -238,7 +238,6 @@ class MainWindow(wx.Frame):
         self.active_color = None
         self.fg_picker = None
         self.bg_picker = None
-        self.spectrum = None
 
         self.filename = ''
         self.dirname = os.environ['HOME'] + "/Pictures/"
@@ -251,10 +250,10 @@ class MainWindow(wx.Frame):
         # create our components
         tool_pane = tool.ToolPane(self)
         active_color_pane = clr.ActiveColorPane(self)
-        foreground = clr.ColorPicker(self, color=self.active_color.foreground,
-                                     ground="foreground", label="FG")
-        background = clr.ColorPicker(self, color=self.active_color.background,
-                                     ground="background", label="BG")
+        foreground = clr.ColorChooser(self, color=self.active_color.foreground,
+                                      ground="foreground", label="FG")
+        background = clr.ColorChooser(self, color=self.active_color.background,
+                                      ground="background", label="BG")
         self.draw_window = DrawWindow(self)
 
         # create a statusbar
