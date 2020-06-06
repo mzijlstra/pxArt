@@ -233,6 +233,49 @@ class BucketFill(wx.Control):
         "no functionality for dragging bucket fill"
 
 
+class ColorPicker(wx.Control):
+    "Tool to pick a color from image into FG or BG"
+
+    # pylint: disable-msg=too-many-arguments
+    def __init__(self, parent, window, wxid=wx.ID_ANY, pos=wx.DefaultPosition,
+                 size=(40, 40), style=wx.NO_BORDER, validator=wx.DefaultValidator,
+                 name="ColorPicker"):
+        wx.Control.__init__(self, parent, wxid, pos,
+                            size, style, validator, name)
+        #wx.StaticText(self, label="Fill", pos=(0, 0))
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
+        self.window = window
+        self.icon = wx.Bitmap(wx.Image("icons/pencil.png")) # TODO make icon!
+        self.command = None
+
+    # pylint: disable=unused-argument
+    def on_paint(self, event):
+        "What this control should look like"
+        paint_dc = wx.PaintDC(self)
+        paint_dc.DrawBitmap(self.icon, 4, 4)
+
+    # pylint: disable=unused-argument
+    def on_left_click(self, event):
+        "on left click handler onto tool icon"
+        self.window.tool = self
+
+    def tool_down(self, image, pos, btn):
+        "pick color from image into FG or BG"
+        c_r = image.GetRed(pos["x"], pos["y"])
+        c_g = image.GetGreen(pos["x"], pos["y"])
+        c_b = image.GetBlue(pos["x"], pos["y"])
+        c_a = image.GetAlpha(pos["x"], pos["y"])
+        color = [c_r, c_g, c_b, c_a]
+        if btn == "left":
+            self.window.active_color.foreground = color
+            self.window.fg_picker.update_color(color)
+        elif btn == "right":
+            self.window.active_color.background = color
+            self.window.bg_picker.update_color(color)
+
+
+
 # pylint: disable=too-few-public-methods
 class ToolPane(wx.CollapsiblePane):
     "The panel that displays all the tool icons"
@@ -248,11 +291,13 @@ class ToolPane(wx.CollapsiblePane):
         self.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_change)
         self.pencil = Pencil(self.GetPane(), parent)
         self.bucket_fill = BucketFill(self.GetPane(), parent)
+        self.color_picker = ColorPicker(self.GetPane(), parent)
         parent.tool = self.pencil
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.pencil)
         sizer.Add(self.bucket_fill)
+        sizer.Add(self.color_picker)
         pane = self.GetPane()
         pane.SetSizer(sizer)
         sizer.SetSizeHints(pane)

@@ -50,25 +50,6 @@ class ActiveColor(wx.Control):
         graphics.SetBrush(fore)
         graphics.DrawRectangle(10, 00, 40, 30)
 
-    def check_transparant(self, ground):
-        """There is one color that we'll make fully transparant, that's
-        full black (zero red, zero green, zero blue), 75% alpha"""
-        ground = getattr(self, ground)
-        if ground[0] + ground[1] + ground[2] == 0 and ground[3] <= 63:
-            ground[3] = 0
-        else:
-            ground[3] = ground[3] | 63
-
-    def set_color(self, ground, color):
-        """sets the currently active foreground or background color
-        more specifically the color the right and left mouse btn make"""
-        clr = getattr(self, ground)
-        clr[0] = color[0]
-        clr[1] = color[1]
-        clr[2] = color[2]
-        clr[3] = color[3]
-        self.check_transparant(ground)
-
 
 class ActiveColorPane(wx.CollapsiblePane):
     """Allows the active color control to be collapsed"""
@@ -208,10 +189,6 @@ class ColorChooser(wx.CollapsiblePane):
         self.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_change)
         self.window = parent
         self.ground = ground
-        if ground == "foreground":
-            self.window.fg_picker = self
-        else:
-            self.window.bg_picker = self
 
         self.reds = []
         self.greens = []
@@ -286,7 +263,6 @@ class ColorChooser(wx.CollapsiblePane):
             clr[2] = color[2]
         else:
             clr[3] = color[3]
-        self.window.active_color.check_transparant(self.ground)
 
     def update_color(self, color):
         """Changes the color for either background or foreground """
@@ -294,8 +270,8 @@ class ColorChooser(wx.CollapsiblePane):
         self.clear_selection("green")
         self.clear_selection("blue")
         self.clear_selection("alpha")
-        self.reds[3 - (color[0] >> 6)].selected = True
-        self.greens[3 - (color[1] >> 6)].selected = True
-        self.blues[3 - (color[2] >> 6)].selected = True
-        self.alphas[3 - (color[3] >> 6)].selected = True
+        self.reds[(color[0] >> 5)].selected = True
+        self.greens[(color[1] >> 5)].selected = True
+        self.blues[(color[2] >> 5)].selected = True
+        self.alphas[(color[3] >> 5)].selected = True
         self.Refresh()

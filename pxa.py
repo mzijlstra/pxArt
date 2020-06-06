@@ -236,8 +236,6 @@ class MainWindow(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title)
         self.active_color = None
-        self.fg_picker = None
-        self.bg_picker = None
 
         self.filename = ''
         self.dirname = os.environ['HOME'] + "/Pictures/"
@@ -250,10 +248,10 @@ class MainWindow(wx.Frame):
         # create our components
         tool_pane = tool.ToolPane(self)
         active_color_pane = clr.ActiveColorPane(self)
-        foreground = clr.ColorChooser(self, color=self.active_color.foreground,
-                                      ground="foreground", label="FG")
-        background = clr.ColorChooser(self, color=self.active_color.background,
-                                      ground="background", label="BG")
+        self.fg_picker = clr.ColorChooser(self, color=self.active_color.foreground,
+                                          ground="foreground", label="FG")
+        self.bg_picker = clr.ColorChooser(self, color=self.active_color.background,
+                                          ground="background", label="BG")
         self.draw_window = DrawWindow(self)
 
         # create a statusbar
@@ -325,8 +323,8 @@ class MainWindow(wx.Frame):
         vert1 = wx.BoxSizer(wx.VERTICAL)
         vert1.Add(tool_pane, 0, wx.ALIGN_TOP)
         vert1.Add(active_color_pane, 0, wx.ALIGN_TOP)
-        vert1.Add(foreground, 0, wx.ALIGN_TOP)
-        vert1.Add(background, 0, wx.ALIGN_TOP)
+        vert1.Add(self.fg_picker, 0, wx.ALIGN_TOP)
+        vert1.Add(self.bg_picker, 0, wx.ALIGN_TOP)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.draw_window, 1, wx.EXPAND)
