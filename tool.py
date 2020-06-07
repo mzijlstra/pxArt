@@ -248,7 +248,7 @@ class ColorPicker(wx.Control):
         self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
         self.window = window
-        self.icon = wx.Bitmap(wx.Image("icons/picker.png")) 
+        self.icon = wx.Bitmap(wx.Image("icons/picker.png"))
         self.command = None
 
     # pylint: disable=unused-argument
@@ -296,13 +296,13 @@ class ToolPane(wx.CollapsiblePane):
         self.parent = parent
         self.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_change)
         self.pencil = Pencil(self.GetPane(), parent)
-        self.bucket_fill = BucketFill(self.GetPane(), parent)
-        self.color_picker = ColorPicker(self.GetPane(), parent)
+        self.bucket = BucketFill(self.GetPane(), parent)
+        self.picker = ColorPicker(self.GetPane(), parent)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.pencil)
-        sizer.Add(self.bucket_fill)
-        sizer.Add(self.color_picker)
+        sizer.Add(self.bucket)
+        sizer.Add(self.picker)
         pane = self.GetPane()
         pane.SetSizer(sizer)
         sizer.SetSizeHints(pane)

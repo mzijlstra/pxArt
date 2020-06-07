@@ -244,7 +244,7 @@ class MainWindow(wx.Frame):
         self.zoom = 10
 
         # create our components
-        tool_pane = tool.ToolPane(self)
+        self.tool_pane = tool.ToolPane(self)
         active_color_pane = clr.ActiveColorPane(self)
         self.fg_picker = clr.ColorChooser(self, color=self.active_color.foreground,
                                           ground="foreground", label="FG")
@@ -253,8 +253,7 @@ class MainWindow(wx.Frame):
         self.draw_window = DrawWindow(self)
 
         # start with the pencil tool
-        self.tool = tool_pane.pencil;
-        self.draw_window.SetCursor(wx.Cursor(wx.CURSOR_PENCIL))
+        self.tool_pane.pencil.on_left_click(None)
 
         # create a statusbar
         self.status_bar = self.CreateStatusBar(3)
@@ -287,20 +286,31 @@ class MainWindow(wx.Frame):
         self.zoom_out = view_menu.Append(
             wx.ID_ZOOM_OUT, "Zoom &Out", "Zoom Out")
 
+        # Create a tool menu
+        tool_menu = wx.Menu()
+        tool_pencil = tool_menu.Append(wx.ID_ANY, "Pencil", "Pencil Tool")
+        tool_bucket = tool_menu.Append(wx.ID_ANY, "Bucket", "Bucket Tool")
+        tool_picker = tool_menu.Append(wx.ID_ANY, "Picker", "Color Picker Tool")
+
         # Creating the menubar.
         menu_bar = wx.MenuBar()
         # Adding the "filemenu" to the MenuBar
         menu_bar.Append(filemenu, "&File")
         menu_bar.Append(edit_menu, "&Edit")
         menu_bar.Append(view_menu, "&View")
+        menu_bar.Append(tool_menu, "&Tool")
         self.SetMenuBar(menu_bar)  # Adding the MenuBar to the Frame content.
 
         # create keyboard shortcuts
-        entries = [wx.AcceleratorEntry() for i in range(4)]
+        entries = [wx.AcceleratorEntry() for i in range(7)]
         entries[0].Set(wx.ACCEL_CTRL, ord('Z'), wx.ID_UNDO, self.menu_undo)
         entries[1].Set(wx.ACCEL_CTRL, ord('Y'), wx.ID_REDO, self.menu_redo)
         entries[2].Set(wx.ACCEL_CTRL, ord('='), wx.ID_ZOOM_IN, self.zoom_in)
         entries[3].Set(wx.ACCEL_CTRL, ord('-'), wx.ID_ZOOM_OUT, self.zoom_out)
+        # TODO these don't work
+        entries[4].Set(wx.ACCEL_CTRL, ord('1'), wx.ID_ANY, tool_pencil) 
+        entries[5].Set(wx.ACCEL_CTRL, ord('2'), wx.ID_ANY, tool_bucket)
+        entries[6].Set(wx.ACCEL_CTRL, ord('3'), wx.ID_ANY, tool_picker)
         self.menu_undo.SetAccel(entries[0])
         self.menu_redo.SetAccel(entries[1])
         self.zoom_in.SetAccel(entries[2])
@@ -320,10 +330,13 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_redo, self.menu_redo)
         self.Bind(wx.EVT_MENU, self.on_zoom_in, self.zoom_in)
         self.Bind(wx.EVT_MENU, self.on_zoom_out, self.zoom_out)
+        self.Bind(wx.EVT_MENU, self.on_tool_pencil, tool_pencil)
+        self.Bind(wx.EVT_MENU, self.on_tool_bucket, tool_bucket)
+        self.Bind(wx.EVT_MENU, self.on_tool_picker, tool_picker)
 
         # Use some sizers to see layout options
         vert1 = wx.BoxSizer(wx.VERTICAL)
-        vert1.Add(tool_pane, 0, wx.ALIGN_TOP)
+        vert1.Add(self.tool_pane, 0, wx.ALIGN_TOP)
         vert1.Add(active_color_pane, 0, wx.ALIGN_TOP)
         vert1.Add(self.fg_picker, 0, wx.ALIGN_TOP)
         vert1.Add(self.bg_picker, 0, wx.ALIGN_TOP)
@@ -463,6 +476,21 @@ class MainWindow(wx.Frame):
             if self.zoom == 1:
                 self.zoom_out.Enable(False)
             self.zoom_in.Enable(True)
+
+    #pylint: disable=unused-argument
+    def on_tool_pencil(self, event):
+        "select pencil tool"
+        self.tool_pane.pencil.on_left_click(None)
+    
+    #pylint: disable=unused-argument
+    def on_tool_bucket(self, event):
+        "select bucket tool"
+        self.tool_pane.bucket.on_left_click(None)
+
+    #pylint: disable=unused-argument
+    def on_tool_picker(self, event):
+        "select picker tool"
+        self.tool_pane.picker.on_left_click(None)
 
     #pylint: disable=unused-argument
     def add_command(self, cmd):
