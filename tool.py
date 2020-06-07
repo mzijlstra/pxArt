@@ -19,7 +19,7 @@ class Pencil(wx.Control):
         self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
         self.window = window
-        self.icon = wx.Bitmap(wx.Image("icons/pencil3.png"))
+        self.icon = wx.Bitmap(wx.Image("icons/pencil.png"))
         self.prev = None
         self.command = None
 
@@ -147,7 +147,7 @@ class BucketFill(wx.Control):
         self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
         self.window = window
-        self.icon = wx.Bitmap(wx.Image("icons/bucket4.png"))
+        self.icon = wx.Bitmap(wx.Image("icons/bucket.png"))
         self.command = None
 
     # pylint: disable=unused-argument
@@ -248,7 +248,7 @@ class ColorPicker(wx.Control):
         self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
         self.window = window
-        self.icon = wx.Bitmap(wx.Image("icons/picker2.png")) 
+        self.icon = wx.Bitmap(wx.Image("icons/picker.png")) 
         self.command = None
 
     # pylint: disable=unused-argument

@@ -345,7 +345,7 @@ class MainWindow(wx.Frame):
         self.draw_window.draw_control.set_zoom(self.zoom)
         self.Bind(wx.EVT_SIZE, self.on_size)
 
-        self.SetIcon(wx.Icon("icons/ferdinand3.png"))
+        self.SetIcon(wx.Icon("icons/icon.png"))
 
     #pylint: disable=unused-argument
     def on_new(self, event):
