@@ -242,8 +242,6 @@ class MainWindow(wx.Frame):
         # used placeholder to indicate beginning of linkedlist
         self.command = command.DrawCommand(self)
         self.zoom = 10
-        # is set by ToolPane in its constructor
-        self.tool = None
 
         # create our components
         tool_pane = tool.ToolPane(self)
@@ -253,6 +251,10 @@ class MainWindow(wx.Frame):
         self.bg_picker = clr.ColorChooser(self, color=self.active_color.background,
                                           ground="background", label="BG")
         self.draw_window = DrawWindow(self)
+
+        # start with the pencil tool
+        self.tool = tool_pane.pencil;
+        self.draw_window.SetCursor(wx.Cursor(wx.CURSOR_PENCIL))
 
         # create a statusbar
         self.status_bar = self.CreateStatusBar(3)

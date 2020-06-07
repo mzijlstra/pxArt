@@ -19,7 +19,7 @@ class Pencil(wx.Control):
         self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
         self.window = window
-        self.icon = wx.Bitmap(wx.Image("icons/pencil2.png"))
+        self.icon = wx.Bitmap(wx.Image("icons/pencil3.png"))
         self.prev = None
         self.command = None
 
@@ -32,6 +32,7 @@ class Pencil(wx.Control):
     # pylint: disable=unused-argument
     def on_left_click(self, event):
         "handles left clicks on the tool"
+        self.window.draw_window.SetCursor(wx.Cursor(wx.CURSOR_PENCIL))
         self.window.tool = self
 
     def tool_down(self, image, pos, btn):
@@ -158,6 +159,7 @@ class BucketFill(wx.Control):
     # pylint: disable=unused-argument
     def on_left_click(self, event):
         "on left click handler onto tool icon"
+        self.window.draw_window.SetCursor(wx.Cursor(wx.CURSOR_SPRAYCAN))
         self.window.tool = self
 
     # pylint: disable=too-many-locals
@@ -246,7 +248,7 @@ class ColorPicker(wx.Control):
         self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
         self.window = window
-        self.icon = wx.Bitmap(wx.Image("icons/pencil.png")) # TODO make icon!
+        self.icon = wx.Bitmap(wx.Image("icons/picker2.png")) 
         self.command = None
 
     # pylint: disable=unused-argument
@@ -258,6 +260,7 @@ class ColorPicker(wx.Control):
     # pylint: disable=unused-argument
     def on_left_click(self, event):
         "on left click handler onto tool icon"
+        self.window.draw_window.SetCursor(wx.Cursor(wx.CURSOR_BULLSEYE))
         self.window.tool = self
 
     def tool_down(self, image, pos, btn):
@@ -273,6 +276,9 @@ class ColorPicker(wx.Control):
         elif btn == "right":
             self.window.active_color.background = color
             self.window.bg_picker.update_color(color)
+
+    def tool_dragged(self, image, pos, btn):
+        "no functionality for dragging color picker"
 
 
 
@@ -292,7 +298,6 @@ class ToolPane(wx.CollapsiblePane):
         self.pencil = Pencil(self.GetPane(), parent)
         self.bucket_fill = BucketFill(self.GetPane(), parent)
         self.color_picker = ColorPicker(self.GetPane(), parent)
-        parent.tool = self.pencil
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.pencil)
