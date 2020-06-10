@@ -241,6 +241,7 @@ class MainWindow(wx.Frame):
         self.dirname = os.environ['HOME'] + "/Pictures/"
         # used placeholder to indicate beginning of linkedlist
         self.command = command.DrawCommand(self)
+        self.saved_at = self.command
         self.zoom = 10
 
         # create our components
@@ -288,9 +289,12 @@ class MainWindow(wx.Frame):
 
         # Create a tool menu
         tool_menu = wx.Menu()
-        tool_pencil = tool_menu.Append(wx.ID_ANY, "Pencil", "Pencil Tool")
-        tool_bucket = tool_menu.Append(wx.ID_ANY, "Bucket", "Bucket Tool")
-        tool_picker = tool_menu.Append(wx.ID_ANY, "Picker", "Color Picker Tool")
+        pencil_id = wx.Window.NewControlId()
+        bucket_id = wx.Window.NewControlId()
+        picker_id = wx.Window.NewControlId()
+        tool_pencil = tool_menu.Append(pencil_id, "Pencil", "Pencil Tool")
+        tool_bucket = tool_menu.Append(bucket_id, "Bucket", "Bucket Tool")
+        tool_picker = tool_menu.Append(picker_id, "Picker", "Color Picker Tool")
 
         # Creating the menubar.
         menu_bar = wx.MenuBar()
@@ -308,9 +312,9 @@ class MainWindow(wx.Frame):
         entries[2].Set(wx.ACCEL_CTRL, ord('='), wx.ID_ZOOM_IN, self.zoom_in)
         entries[3].Set(wx.ACCEL_CTRL, ord('-'), wx.ID_ZOOM_OUT, self.zoom_out)
         # TODO these don't work
-        entries[4].Set(wx.ACCEL_CTRL, ord('1'), wx.ID_ANY, tool_pencil) 
-        entries[5].Set(wx.ACCEL_CTRL, ord('2'), wx.ID_ANY, tool_bucket)
-        entries[6].Set(wx.ACCEL_CTRL, ord('3'), wx.ID_ANY, tool_picker)
+        entries[4].Set(wx.ACCEL_CTRL, ord('1'), pencil_id, tool_pencil) 
+        entries[5].Set(wx.ACCEL_CTRL, ord('2'), bucket_id, tool_bucket)
+        entries[6].Set(wx.ACCEL_CTRL, ord('3'), picker_id, tool_picker)
         self.menu_undo.SetAccel(entries[0])
         self.menu_redo.SetAccel(entries[1])
         self.zoom_in.SetAccel(entries[2])
@@ -407,6 +411,7 @@ class MainWindow(wx.Frame):
             data.append(line)
 
         png.from_array(data, "RGBA").save(filename)
+        self.saved_at = self.command
 
     #pylint: disable=unused-argument
     def on_save(self, event):
@@ -432,6 +437,12 @@ class MainWindow(wx.Frame):
     #pylint: disable=unused-argument
     def on_exit(self, event):
         """ The onExit handler """
+        # check for unsaved changes
+        # TODO this check is not working?
+        if self.saved_at != self.command:
+            #show a discard changes dialog
+            # TODO make dialog
+            print("Are you sure")
         self.Close(True)  # Close the frame.
 
     #pylint: disable=unused-argument
