@@ -324,6 +324,7 @@ class MainWindow(wx.Frame):
         self.SetAcceleratorTable(accel)
 
         # Events.
+        self.Bind(wx.EVT_CLOSE, self.on_close)
         self.Bind(wx.EVT_MENU, self.on_new, menu_new)
         self.Bind(wx.EVT_MENU, self.on_open, menu_open)
         self.Bind(wx.EVT_MENU, self.on_save, menu_save)
@@ -363,6 +364,20 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_SIZE, self.on_size)
 
         self.SetIcon(wx.Icon("icons/icon.png"))
+
+    def on_close(self, event):
+        if event.CanVeto() and self.saved_at != self.command:
+            if wx.MessageBox("Discard unsaved changes?", "Please confirm", 
+                    wx.ICON_QUESTION | wx.YES_NO) != wx.YES:
+                event.Veto()
+                return
+        self.Destroy()
+
+
+    #pylint: disable=unused-argument
+    def on_exit(self, event):
+        """ The onExit handler """
+        self.Close(True)  # Close the frame.
 
     #pylint: disable=unused-argument
     def on_new(self, event):
@@ -433,17 +448,6 @@ class MainWindow(wx.Frame):
             if not self.filename.endswith(".png"):
                 self.filename += ".png"
             self._save(self.filename)
-
-    #pylint: disable=unused-argument
-    def on_exit(self, event):
-        """ The onExit handler """
-        # check for unsaved changes
-        # TODO this check is not working?
-        if self.saved_at != self.command:
-            #show a discard changes dialog
-            # TODO make dialog
-            print("Are you sure")
-        self.Close(True)  # Close the frame.
 
     #pylint: disable=unused-argument
     def on_undo(self, event):
