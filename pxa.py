@@ -311,7 +311,6 @@ class MainWindow(wx.Frame):
         entries[1].Set(wx.ACCEL_CTRL, ord('Y'), wx.ID_REDO, self.menu_redo)
         entries[2].Set(wx.ACCEL_CTRL, ord('='), wx.ID_ZOOM_IN, self.zoom_in)
         entries[3].Set(wx.ACCEL_CTRL, ord('-'), wx.ID_ZOOM_OUT, self.zoom_out)
-        # TODO these don't work
         entries[4].Set(wx.ACCEL_CTRL, ord('1'), pencil_id, tool_pencil) 
         entries[5].Set(wx.ACCEL_CTRL, ord('2'), bucket_id, tool_bucket)
         entries[6].Set(wx.ACCEL_CTRL, ord('3'), picker_id, tool_picker)
@@ -425,7 +424,7 @@ class MainWindow(wx.Frame):
                 line.append(img.GetAlpha(x_pos, y_pos))
             data.append(line)
 
-        png.from_array(data, "RGBA").save(filename)
+        png.from_array(data, "RGBA;8").save(filename)
         self.saved_at = self.command
 
     #pylint: disable=unused-argument
