@@ -394,6 +394,7 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
             dirname = dlg.GetDirectory()
+            self.dirname = dirname
             img = wx.Image(os.path.join(dirname, filename))
             if not img.HasAlpha():
                 img.InitAlpha()
