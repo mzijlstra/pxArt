@@ -394,7 +394,9 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
             dirname = dlg.GetDirectory()
-            self.dirname = dirname
+            self.filename = filename
+            self.dirname = dirname 
+            os.chdir(dirname)
             img = wx.Image(os.path.join(dirname, filename))
             if not img.HasAlpha():
                 img.InitAlpha()
@@ -475,10 +477,10 @@ class MainWindow(wx.Frame):
     #pylint: disable=unused-argument
     def on_zoom_in(self, event):
         "on zoom in handler"
-        if self.zoom < 10:
+        if self.zoom < 25:
             self.zoom += 1
             self.draw_window.draw_control.set_zoom(self.zoom)
-            if self.zoom == 10:
+            if self.zoom == 25:
                 self.zoom_in.Enable(False)
             self.zoom_out.Enable(True)
 
